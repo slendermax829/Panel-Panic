@@ -5,7 +5,66 @@ import 'package:panel_puzzle/sprite/sprite_frame.dart';
 import 'dart:ui' as ui;
 import 'spriteparser.dart' as  SpriteParser;
 
+class _SpriteData {
+  final ui.Image image;
+  final SpriteFrameCollection frames;
+
+  _SpriteData(this.image, this.frames);
+}
+
+class _SharedSpriteData {
+  static final Map<String, _SharedSpriteData> _cache = {};
+
+  final String name;
+  late final Future<_SpriteData> future;
+
+  ui.Image? _image;
+  int _references = 0;
+
+  _SharedSpriteData(this.name) {
+    future = _load();
+  }
+
+  static _SharedSpriteData acquire(String name) {
+    final data = _cache.putIfAbsent(name, () => _SharedSpriteData(name)); // new sprite added accquire img data and frames
+    data._references++;
+    return data;
+  }
+
+  Future<_SpriteData> _load() async {
+    final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+    final imgPath = manifest.listAssets().firstWhere((asset) => asset.endsWith('/$name.png'));
+    final xmlPath = manifest.listAssets().firstWhere((asset) => asset.endsWith('/$name.xml'));
+    final image = await SpriteParser.atlasSourceImg(imgPath);
+    try {
+      final frames = await SpriteParser.atlasSpriteFrames(xmlPath);
+      if (frames.numOfFrames == 0) {
+        throw StateError('Sprite "$name" has no frames');
+      }
+      if (_references == 0) {
+        image.dispose();
+      } else {
+        _image = image;
+      }
+      return _SpriteData(image, frames);
+    } catch (_) {
+      image.dispose();
+      rethrow;
+    }
+  }
+
+  void release() {
+    _references--;
+    if (_references == 0) {
+      _cache.remove(name);
+      _image?.dispose();
+      _image = null;
+    }
+  }
+}
+
 class SpriteWidget extends StatefulWidget {
+  
   final String name;
   final int fps;
   final double width;
@@ -42,6 +101,7 @@ class SpriteWidget extends StatefulWidget {
 class _SpriteWidgetState extends State<SpriteWidget> with SingleTickerProviderStateMixin{
   late final AnimationController _animationController;
   late final Future<void> _spriteLoadingFuture;
+  late final _SharedSpriteData _spriteData;
   late final ui.Image _sourceImage;
   late final SpriteFrameCollection _frames;
   List<SpriteFrame> _activeFrames = [];
@@ -54,19 +114,15 @@ class _SpriteWidgetState extends State<SpriteWidget> with SingleTickerProviderSt
       vsync: this,
     );
     widget.controller?.addListener(_onAnimationChanged);
+    _spriteData = _SharedSpriteData.acquire(widget.name);
     _spriteLoadingFuture = _loadSprite();
+    //debugPrint('References: ${_spriteData._references}');
   }
 
   Future<void> _loadSprite() async {
-    final assetManifest = await AssetManifest.loadFromAssetBundle(rootBundle);
-    final imgPath = assetManifest.listAssets().firstWhere((asset) => asset.endsWith('/${widget.name}.png'));
-    final xmlPath = assetManifest.listAssets().firstWhere((asset) => asset.endsWith('/${widget.name}.xml'));
-
-    _sourceImage = await SpriteParser.atlasSourceImg(imgPath);
-    _frames = await SpriteParser.atlasSpriteFrames(xmlPath);
-    if (_frames.numOfFrames == 0) {
-      throw StateError('Sprite "${widget.name}" has no frames');
-    }
+    final data = await _spriteData.future;
+    _sourceImage = data.image;
+    _frames = data.frames;
     if (mounted) {
       widget.controller?.attachFrames(_frames);
       _loaded = true;
@@ -140,6 +196,7 @@ class _SpriteWidgetState extends State<SpriteWidget> with SingleTickerProviderSt
   void dispose() {
     widget.controller?.removeListener(_onAnimationChanged);
     if (_loaded) widget.controller?.detachFrames(_frames);
+    _spriteData.release();
     _animationController.dispose();
     super.dispose();
   }

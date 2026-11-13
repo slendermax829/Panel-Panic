@@ -96,6 +96,11 @@ void main(){
       expect(controller.isLooping, isFalse);
       controller.stop();
       expect(controller.currentAnimation, isNull);
+      controller.attachFrames(frames);
+      controller.detachFrames(frames);
+      expect(() => controller.addAnimation('missing'), throwsArgumentError);
+      controller.detachFrames(frames);
+      controller.addAnimation('missing');
     });
 
     testWidgets('plays only the registered animation on request', (tester) async {
@@ -201,7 +206,7 @@ void main(){
       await tester.pumpWidget(const SizedBox());
     });
 
-    testWidgets('tapping the sprite toggles between groove and hurt', (tester) async {
+    testWidgets('grid sprites share playback when one is tapped', (tester) async {
       await tester.runAsync(() async {
         await tester.pumpWidget(
           const MaterialApp(home: MyHomePage()),
@@ -216,26 +221,39 @@ void main(){
       });
       expect(find.byType(CircularProgressIndicator), findsNothing);
       expect(find.textContaining('Error:'), findsNothing);
+      final sprites = find.byType(SpriteWidget);
+      expect(sprites.evaluate().length, greaterThan(1));
       final spritePaint = find.descendant(
         of: find.byType(SpriteWidget),
         matching: find.byWidgetPredicate(
           (widget) => widget is CustomPaint && widget.painter != null,
         ),
       );
-      String currentFrameName() {
-        final dynamic painter = tester.widget<CustomPaint>(spritePaint).painter;
-        return painter.frame.textureName as String;
-      }
+      List<String> currentFrameNames() => tester
+          .widgetList<CustomPaint>(spritePaint)
+          .map((paint) {
+            final dynamic painter = paint.painter;
+            return painter.frame.textureName as String;
+          })
+          .toList();
 
-      expect(currentFrameName(), 'kirb groove0000');
-      await tester.tap(find.byType(SpriteWidget));
+      expect(currentFrameNames().length, sprites.evaluate().length);
+      expect(currentFrameNames(), everyElement(startsWith('kirb groove')));
+      final painters = tester.widgetList<CustomPaint>(spritePaint).toList();
+      final dynamic firstPainter = painters.first.painter;
+      for (final paint in painters.skip(1)) {
+        final dynamic painter = paint.painter;
+        expect(identical(painter.image, firstPainter.image), isTrue);
+      }
+      await tester.tap(sprites.first);
       await tester.pump();
-      expect(currentFrameName(), 'kirb hurt0000');
-      await tester.pump(const Duration(milliseconds: 50));
-      expect(currentFrameName(), 'kirb hurt0001');
-      await tester.tap(find.byType(SpriteWidget));
+      await tester.pump(const Duration(milliseconds: 150));
+      expect(currentFrameNames(), everyElement(startsWith('kirb hurt')));
+      await tester.drag(find.byType(GridView), const Offset(0, -400));
       await tester.pump();
-      expect(currentFrameName(), 'kirb groove0000');
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.textContaining('Error:'), findsNothing);
+      expect(currentFrameNames(), everyElement(startsWith('kirb hurt')));
       await tester.pumpWidget(const SizedBox());
       expect(tester.takeException(), isNull);
     });

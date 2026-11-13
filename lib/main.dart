@@ -1,8 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:panel_puzzle/sprite/sprite.dart';
 import 'package:panel_puzzle/sprite/sprite_animation.dart';
+import 'package:window_manager/legacy.dart';
+import 'package:window_manager/window_manager.dart';
 
-void main() {
+const _RESOLUTION = Size(1080, 1920);
+
+Future<void> main() async {
+  // WidgetsFlutterBinding.ensureInitialized();
+  // await windowManager.ensureInitialized();
+
+  // WindowOptions windowOptions = const WindowOptions(
+  //   size: _RESOLUTION,
+  //   minimumSize: _RESOLUTION, 
+  //   maximumSize: _RESOLUTION,     // Initial width and height
+  //   center: true,                // Center the window on screen
+  // );
+
+  // windowManager.waitUntilReadyToShow(windowOptions, () async {
+  //   await windowManager.show();
+  //   await windowManager.focus();
+  // });
+
   runApp(const MyApp());
 }
 
@@ -59,20 +78,51 @@ class _MyHomePageState extends State<MyHomePage> {
     // _spriteController.playLooped(next);
     index = ((index + 1) % _spriteController.prefixes.length).round();
     final nextAnimation = _spriteController.prefixes.elementAt(index);
-    _spriteController.playLooped(nextAnimation);
+    _spriteController.playLoopedDelayed(nextAnimation, Duration(milliseconds: 150));
   }
 
   @override
   Widget build(BuildContext context) {
+    // return Center(
+    //   child: SpriteWidget.squared(
+    //     name: 'Kirb',
+    //     size: 200,
+    //     fps: 24,
+    //     filterQuality: FilterQuality.low,
+    //     controller: _spriteController,
+    //     onTap: _toggleSpriteAnimation,
+    //   )
+    // );
+    int size = 6;
+
     return Center(
-      child: SpriteWidget.squared(
-        name: 'Kirb',
-        size: 200,
-        fps: 60,
-        filterQuality: FilterQuality.low,
-        controller: _spriteController,
-        onTap: _toggleSpriteAnimation,
-      )
+      child: Container(
+        width: 400,
+        height: 400,
+        padding: EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.tealAccent),
+        ),
+        child: GridView.builder(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: size,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 1.0
+          ),
+          itemCount: (size*size), 
+          itemBuilder:(context, index) {
+            return SpriteWidget.squared(
+              name: 'Kirb',
+              fps: 24,
+              size: 200,
+              filterQuality: FilterQuality.medium,
+              controller: _spriteController,
+              onTap: () => _toggleSpriteAnimation(),
+            );
+          },
+        ),
+      ),
     );
   }
 }
