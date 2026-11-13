@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:panel_puzzle/sprite/sprite.dart';
+import 'package:panel_puzzle/sprite/sprite_animation.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,42 +17,61 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: .fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-  final String title;
+  const MyHomePage({super.key});
+
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+  int index = 0;
+  final _spriteController = SpriteAnimationController(
+    prefixes: [
+      'kirb groove', 
+      'kirb hurt',
+      'kirb victory'
+    ],
+  );
 
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
+  @override
+  void initState() {
+    super.initState();
+    _spriteController.playLooped('kirb groove');
+  }
+
+  @override
+  void dispose() {
+    _spriteController.dispose();
+    super.dispose();
+  }
+
+  void _toggleSpriteAnimation() {
+    // final next = _spriteController.currentAnimation == 'kirb groove'
+    //     ? 'kirb hurt'
+    //     : 'kirb victory';
+    // _spriteController.playLooped(next);
+    index = ((index + 1) % _spriteController.prefixes.length).round();
+    final nextAnimation = _spriteController.prefixes.elementAt(index);
+    _spriteController.playLooped(nextAnimation);
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Center(
       child: SpriteWidget.squared(
-        name: 'Kirb Groove',
-        size: 50,
-        fps: 24,
+        name: 'Kirb',
+        size: 200,
+        fps: 60,
         filterQuality: FilterQuality.low,
+        controller: _spriteController,
+        onTap: _toggleSpriteAnimation,
       )
     );
   }

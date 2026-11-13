@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:panel_puzzle/main.dart';
 import 'package:panel_puzzle/sprite/sprite.dart';
+import 'package:panel_puzzle/sprite/sprite_animation.dart';
+import 'package:panel_puzzle/sprite/sprite_frame.dart';
 import 'dart:io';
 
 import 'package:xml/xml.dart';
@@ -42,7 +45,7 @@ void main(){
           ),
         );
         final dynamic painter = paint.painter;
-        return painter.frame.name as String;
+        return painter.frame.textureName as String;
       }
 
       expect(currentFrameName(), 'Kirb Bob0000');
@@ -65,6 +68,176 @@ void main(){
       expect(currentFrameName(), 'Kirb Bob0000');
       await tester.pump(const Duration(milliseconds: 50));
       expect(currentFrameName(), 'Kirb Bob0001');
+    });
+
+    test('registers prefixes and orders all matching frames', () {
+      final frames = SpriteFrameCollection()
+        ..addFrame(const SpriteFrame(textureName: 'walk0010', rect: Rect.zero))
+        ..addFrame(const SpriteFrame(textureName: 'walk0000', rect: Rect.zero))
+        ..addFrame(const SpriteFrame(textureName: 'walk0001', rect: Rect.zero))
+        ..addFrame(const SpriteFrame(textureName: 'jump 0000', rect: Rect.zero));
+      final controller = SpriteAnimationController(prefixes: ['walk', 'jump']);
+      addTearDown(controller.dispose);
+      controller.attachFrames(frames);
+
+      expect(frames.numOfFrames, 4);
+      expect(frames.getFramesByPrefix('walk').map((frame) => frame.textureName),
+          ['walk0000', 'walk0001', 'walk0010']);
+      expect(frames.getFramesByPrefix('jump').single.frameNumber, 0);
+      expect(() => controller.playLooped('missing'), throwsArgumentError);
+      expect(() => controller.addAnimation('missing'), throwsArgumentError);
+
+      controller.playLooped('walk');
+      controller.playOnce('walk');
+      expect(controller.currentAnimation, 'walk');
+      expect(controller.isLooping, isTrue);
+      controller.playOnce('jump');
+      expect(controller.currentAnimation, 'jump');
+      expect(controller.isLooping, isFalse);
+      controller.stop();
+      expect(controller.currentAnimation, isNull);
+    });
+
+    testWidgets('plays only the registered animation on request', (tester) async {
+      final controller = SpriteAnimationController(prefixes: ['Kirb Bob']);
+      addTearDown(controller.dispose);
+      await tester.runAsync(() async {
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: SpriteWidget(
+              name: testSpriteName,
+              fps: 24,
+              controller: controller,
+            ),
+          ),
+        );
+        for (var i = 0; i < 100; i++) {
+          await Future<void>.delayed(const Duration(milliseconds: 20));
+          await tester.pump();
+          if (find.byType(CircularProgressIndicator).evaluate().isEmpty) {
+            break;
+          }
+        }
+      });
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.textContaining('Error:'), findsNothing);
+
+      final spritePaint = find.descendant(
+        of: find.byType(SpriteWidget),
+        matching: find.byWidgetPredicate(
+          (widget) => widget is CustomPaint && widget.painter != null,
+        ),
+      );
+      String currentFrameName() {
+        final dynamic painter = tester.widget<CustomPaint>(spritePaint).painter;
+        return painter.frame.textureName as String;
+      }
+
+      expect(spritePaint, findsNothing);
+      controller.playOnce('Kirb Bob');
+      await tester.pump();
+      expect(currentFrameName(), 'Kirb Bob0000');
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(currentFrameName(), 'Kirb Bob0001');
+      controller.playOnce('Kirb Bob');
+      await tester.pump(const Duration(milliseconds: 450));
+      expect(currentFrameName(), 'Kirb Bob0011');
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(currentFrameName(), 'Kirb Bob0011');
+      controller.stop();
+      await tester.pump();
+      expect(spritePaint, findsNothing);
+      controller.playLooped('Kirb Bob');
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 550));
+      expect(currentFrameName(), 'Kirb Bob0001');
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('switches between atlas prefixes and honors queued playback', (tester) async {
+      final controller = SpriteAnimationController(
+        prefixes: ['kirb groove', 'kirb hurt'],
+      );
+      addTearDown(controller.dispose);
+      controller.playLooped('kirb groove');
+      await tester.runAsync(() async {
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: SpriteWidget(name: 'Kirb', fps: 24, controller: controller),
+          ),
+        );
+        for (var i = 0; i < 250; i++) {
+          await Future<void>.delayed(const Duration(milliseconds: 20));
+          await tester.pump();
+          if (find.byType(CircularProgressIndicator).evaluate().isEmpty) {
+            break;
+          }
+        }
+      });
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.textContaining('Error:'), findsNothing);
+
+      final spritePaint = find.descendant(
+        of: find.byType(SpriteWidget),
+        matching: find.byWidgetPredicate(
+          (widget) => widget is CustomPaint && widget.painter != null,
+        ),
+      );
+      String currentFrameName() {
+        final dynamic painter = tester.widget<CustomPaint>(spritePaint).painter;
+        return painter.frame.textureName as String;
+      }
+
+      expect(currentFrameName(), 'kirb groove0000');
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(currentFrameName(), 'kirb groove0001');
+      controller.playOnce('kirb hurt');
+      await tester.pump();
+      expect(currentFrameName(), 'kirb hurt0000');
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(currentFrameName(), 'kirb hurt0008');
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('tapping the sprite toggles between groove and hurt', (tester) async {
+      await tester.runAsync(() async {
+        await tester.pumpWidget(
+          const MaterialApp(home: MyHomePage()),
+        );
+        for (var i = 0; i < 250; i++) {
+          await Future<void>.delayed(const Duration(milliseconds: 20));
+          await tester.pump();
+          if (find.byType(CircularProgressIndicator).evaluate().isEmpty) {
+            break;
+          }
+        }
+      });
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.textContaining('Error:'), findsNothing);
+      final spritePaint = find.descendant(
+        of: find.byType(SpriteWidget),
+        matching: find.byWidgetPredicate(
+          (widget) => widget is CustomPaint && widget.painter != null,
+        ),
+      );
+      String currentFrameName() {
+        final dynamic painter = tester.widget<CustomPaint>(spritePaint).painter;
+        return painter.frame.textureName as String;
+      }
+
+      expect(currentFrameName(), 'kirb groove0000');
+      await tester.tap(find.byType(SpriteWidget));
+      await tester.pump();
+      expect(currentFrameName(), 'kirb hurt0000');
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(currentFrameName(), 'kirb hurt0001');
+      await tester.tap(find.byType(SpriteWidget));
+      await tester.pump();
+      expect(currentFrameName(), 'kirb groove0000');
+      await tester.pumpWidget(const SizedBox());
+      expect(tester.takeException(), isNull);
     });
 
     test('Retrieve spriteImage Atlas',(){

@@ -26,7 +26,7 @@ Future<SpriteFrameCollection> atlasSpriteFrames(String path) async{
     final height = double.parse(element.getAttribute('height')!);
 
     final SpriteFrame frame = SpriteFrame(
-      name: name,
+      textureName: name,
       rect: Rect.fromLTWH(
         x, 
         y, 
