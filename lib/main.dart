@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:panel_puzzle/game/Board.dart';
+import 'package:panel_puzzle/game/game_set.dart';
 import 'package:panel_puzzle/sprite/sprite.dart';
 import 'package:panel_puzzle/sprite/sprite_animation.dart';
 import 'package:window_manager/legacy.dart';
@@ -36,9 +38,26 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: .fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const MyHomePage(),
+      //home: const MyHomePage(),
+      home: const TestGrid(),
     );
   }
+}
+
+class TestGrid extends StatefulWidget{
+  const TestGrid({super.key});
+
+  @override
+  State<StatefulWidget> createState() => _TestGridState();
+}
+
+class _TestGridState extends State<TestGrid>{
+
+  @override
+  Widget build(BuildContext context) {
+    return GameSet();
+  }
+
 }
 
 class MyHomePage extends StatefulWidget {
