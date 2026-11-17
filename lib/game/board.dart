@@ -30,7 +30,7 @@ class Board extends StatelessWidget {
       padding: EdgeInsets.all(5),
       decoration: BoxDecoration(
         border: Border.all(
-          color: Colors.blue
+          color: !isInteractive ? Colors.yellowAccent : Colors.blue
         ),
       ),
       child: AspectRatio(

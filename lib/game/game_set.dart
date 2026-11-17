@@ -1,12 +1,18 @@
 import 'dart:math';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:panel_puzzle/game/board.dart';
 
+enum Mode{
+  Random,
+  Custom;
+}
+
 class GameSet extends StatefulWidget {
+  static const Mode mode = .Random;
   static const int gridSize = 4;
-  static const int scrambledMoves = 1;
+  static const int scrambledMoves = 2;
+  static const int _tries = 3;
 
   const new({super.key});
 
@@ -15,11 +21,15 @@ class GameSet extends StatefulWidget {
 }
 
 class _GameSetState extends State<GameSet> {
+  late List<bool> _initialTargetBoard;
+  late List<bool> _initialPlayerBoard;
 
   late List<bool> _targetBoard;
   late List<bool> _playerBoard;
 
   late int _moves;
+  late int _tries;
+
   bool _isSolved = false;
 
   int get _numOfPanels => (GameSet.gridSize * GameSet.gridSize);
@@ -27,6 +37,7 @@ class _GameSetState extends State<GameSet> {
   @override
   void initState() {
     _moves = GameSet.scrambledMoves;
+    _tries = GameSet._tries;
     _generateNewPuzzle();
 
     super.initState();
@@ -39,7 +50,10 @@ class _GameSetState extends State<GameSet> {
     setState(() {
       _playerBoard = List.from(startingBoard);
       _targetBoard = _setBoardIndices(List.from(startingBoard));
+      _initialPlayerBoard = List.from(_playerBoard);
+      _initialTargetBoard = List.from(_targetBoard);
       _moves = GameSet.scrambledMoves;
+      _tries = GameSet._tries;
       _isSolved = false;
     });
   }
@@ -77,7 +91,8 @@ class _GameSetState extends State<GameSet> {
   }
 
   void _onPlayerTap(int index){
-    if(_isSolved || _moves == 0) return;
+    // Can only tap if game isn't solved and player has moves left and tries left
+    if(_isSolved || _moves <= 0 || _tries <= 0) return;
 
     setState((){
       _applyFlipLogic(_playerBoard, index);
@@ -85,10 +100,15 @@ class _GameSetState extends State<GameSet> {
       _isSolved = listEquals(_playerBoard, _targetBoard);
     });
 
+    // Check conditions AFTER the move
     if(_isSolved){
       _showWinDialog();
     } else if(_moves == 0){
-      _showGameOverDialog();
+      if(_tries > 1){
+        _tryAgainDialog();
+      } else {
+        _showGameOverDialog();
+      }
     }
   }
 
@@ -109,6 +129,26 @@ class _GameSetState extends State<GameSet> {
             )
           ],
         ),
+    );
+  }
+
+  void _tryAgainDialog(){
+    showDialog(
+      context: context, 
+      barrierDismissible: false,
+      builder:(context) => AlertDialog(
+        title: const Text('Try Again'),
+        content: Text('Ran out of tries. Tries left ${_tries-1}'),
+        actions: [
+          TextButton(
+            onPressed:() {
+              Navigator.of(context).pop();
+              _resetCurrentPuzzle();
+            },
+            child: const Text('Try Again')
+          )
+        ],
+      ),
     );
   }
 
@@ -135,9 +175,10 @@ class _GameSetState extends State<GameSet> {
   void _resetCurrentPuzzle(){
     final Random rand = Random();
     setState((){
-      _playerBoard = List.generate(_numOfPanels, (_) => rand.nextBool());
-      _targetBoard = _setBoardIndices(List.from(_playerBoard));
+      _playerBoard = List.from(_initialPlayerBoard);
+      _targetBoard = List.from(_initialTargetBoard);
       _moves = GameSet.scrambledMoves;
+      _tries--;
       _isSolved = false;
     });
   }
@@ -147,54 +188,121 @@ class _GameSetState extends State<GameSet> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        backgroundColor: Colors.grey,
+        backgroundColor: Colors.black.withValues(alpha: .1),
         foregroundColor: Colors.white,
-        title: Text('Moves: $_moves'),
+        leading: Column(
+          mainAxisSize: .min,
+          children: [
+            Text('Tries: $_tries'),
+            Text('Moves: $_moves / ${GameSet.scrambledMoves}')
+          ],
+        ),
+        leadingWidth: 100,
+        title: GameSet.mode == .Random
+                ? Text('Random Game')
+                : Text('Custom Game'),
+        titleTextStyle: TextStyle(
+          fontSize: 20,
+          decoration: TextDecoration.underline
+        ),
+        centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.replay),
-            onPressed: () => _resetCurrentPuzzle(),
-          ),
-          IconButton(
-            onPressed: () => _generateNewPuzzle(),
-            icon: const Icon(Icons.shuffle)
+            icon: Icon(Icons.menu),
+            tooltip: 'Menu',
+            onPressed: () => debugPrint('Menu Pressed'),
           )
         ],
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          child: Column(
-            mainAxisAlignment: .spaceEvenly,
-            children: [
-              const Text(
-                'TARGET',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.3,
-                  color: Colors.indigo
-                ),
+        child: Stack(
+          children: [
+            _buidBackGround(),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              child: Column(
+                mainAxisAlignment: .spaceEvenly,
+                children: [
+                  const Text(
+                    'TARGET',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.3,
+                      color: Colors.yellowAccent,
+                      decoration: TextDecoration.underline
+                    ),
+                  ),
+                  Expanded(
+                    child: Board(
+                      boardSize: GameSet.gridSize, 
+                      panels: _targetBoard, 
+                      isInteractive: false
+                    ),
+                  ),
+                  const Divider(height: 15,),
+                  Expanded(
+                    child: Board(
+                      boardSize: GameSet.gridSize, 
+                      panels: _playerBoard, 
+                      isInteractive: true,
+                      onPanelTap: _onPlayerTap,
+                    ),
+                  )
+                ],
               ),
-              Expanded(
-                child: Board(
-                  boardSize: GameSet.gridSize, 
-                  panels: _targetBoard, 
-                  isInteractive: false
-                ),
-              ),
-              const Divider(height: 15,),
-              Expanded(
-                child: Board(
-                  boardSize: GameSet.gridSize, 
-                  panels: _playerBoard, 
-                  isInteractive: true,
-                  onPanelTap: _onPlayerTap,
-                ),
-              )
-            ],
-          ),
+            ),
+          ]
         )
       ),
     );
   }
+}
+
+Widget _buidBackGround(){
+  return Stack(
+    children: [
+      Positioned.fill(
+        child: Image.asset(
+          'assets/images/background.png',
+          fit: BoxFit.cover
+        ),
+      ),
+      Row(
+        mainAxisAlignment: .spaceBetween,
+        crossAxisAlignment: .stretch,
+        children:[
+          Flexible(
+            flex: 1,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: 400,
+                minWidth: 0
+              ),
+              child: Image.asset(
+                'assets/images/pillar.png',
+                fit: BoxFit.cover
+              ),
+            ),
+          ),
+          Transform.flip(
+            flipX: true,
+            flipY: false,
+            child: Flexible(
+              flex: 1,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: 400,
+                  minWidth: 0
+                ),
+                child: Image.asset(
+                  'assets/images/pillar.png',
+                  fit: BoxFit.cover
+                ),
+              ),
+            )
+          )
+        ]
+      )
+    ],
+  );
 }
