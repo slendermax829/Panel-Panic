@@ -1,253 +1,90 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:panel_puzzle/sprite/sprite_animation.dart';
-import 'package:panel_puzzle/sprite/sprite_frame.dart';
 import 'dart:ui' as ui;
-import 'spriteparser.dart' as  SpriteParser;
 
-class _SpriteData {
-  final ui.Image image;
-  final SpriteFrameCollection frames;
+import 'package:panel_puzzle/sprite/sprite_animation_controller.dart';
+import 'package:panel_puzzle/sprite/sprite_data.dart';
+import 'package:panel_puzzle/sprite/sprite_frame.dart';
 
-  _SpriteData(this.image, this.frames);
-}
-
-class _SharedSpriteData {
-  static final Map<String, _SharedSpriteData> _cache = {};
-
-  final String name;
-  late final Future<_SpriteData> future;
-
-  ui.Image? _image;
-  int _references = 0;
-
-  _SharedSpriteData(this.name) {
-    future = _load();
-  }
-
-  static _SharedSpriteData acquire(String name) {
-    final data = _cache.putIfAbsent(name, () => _SharedSpriteData(name)); // new sprite added accquire img data and frames
-    data._references++;
-    return data;
-  }
-
-  Future<_SpriteData> _load() async {
-    final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
-    final imgPath = manifest.listAssets().firstWhere((asset) => asset.endsWith('/$name.png'));
-    final xmlPath = manifest.listAssets().firstWhere((asset) => asset.endsWith('/$name.xml'));
-    final image = await SpriteParser.atlasSourceImg(imgPath);
-    try {
-      final frames = await SpriteParser.atlasSpriteFrames(xmlPath);
-      if (frames.numOfFrames == 0) {
-        throw StateError('Sprite "$name" has no frames');
-      }
-      if (_references == 0) {
-        image.dispose();
-      } else {
-        _image = image;
-      }
-      return _SpriteData(image, frames);
-    } catch (_) {
-      image.dispose();
-      rethrow;
-    }
-  }
-
-  void release() {
-    _references--;
-    if (_references == 0) {
-      _cache.remove(name);
-      _image?.dispose();
-      _image = null;
-    }
-  }
-}
-
-class SpriteWidget extends StatefulWidget {
-  
-  final String name;
-  final int fps;
+class AnimatedSprite extends StatelessWidget {
+  final SpriteAnimationController controller;
   final double width;
   final double height;
+  final bool flipX;
+  final bool flipY;
   final FilterQuality filterQuality;
-  final SpriteAnimationController? controller;
-  final VoidCallback? onTap;
 
-  SpriteWidget({
+  const AnimatedSprite({
     super.key,
-    required this.name,
-    this.fps = 12,
-    this.width = 100,
-    this.height = 100,
-    this.filterQuality = FilterQuality.medium,
-    this.controller,
-    this.onTap
-  }) : assert(fps > 0);
+    required this.controller,
+    this.width = 1.0,
+    this.height = 1.0,
+    this.flipX = false,
+    this.flipY = false,
+    this.filterQuality = .none
+  });
 
-  SpriteWidget.squared({
-    super.key,
-    required this.name,
-    this.fps = 12,
-    double size = 100,
-    this.filterQuality = FilterQuality.medium,
-    this.controller,
-    this.onTap
-  }) : width = size, height = size, assert(fps > 0);
-
-  @override
-  State<SpriteWidget> createState() => _SpriteWidgetState();
-}
-
-class _SpriteWidgetState extends State<SpriteWidget> with SingleTickerProviderStateMixin{
-  late final AnimationController _animationController;
-  late final Future<void> _spriteLoadingFuture;
-  late final _SharedSpriteData _spriteData;
-  late final ui.Image _sourceImage;
-  late final SpriteFrameCollection _frames;
-  List<SpriteFrame> _activeFrames = [];
-  bool _loaded = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-    );
-    widget.controller?.addListener(_onAnimationChanged);
-    _spriteData = _SharedSpriteData.acquire(widget.name);
-    _spriteLoadingFuture = _loadSprite();
-    //debugPrint('References: ${_spriteData._references}');
-  }
-
-  Future<void> _loadSprite() async {
-    final data = await _spriteData.future;
-    _sourceImage = data.image;
-    _frames = data.frames;
-    if (mounted) {
-      widget.controller?.attachFrames(_frames);
-      _loaded = true;
-      if (widget.controller == null) {
-        _activeFrames = [for (final index in _frames.indices) _frames[index]];
-        _startAnimation(looping: true);
-      } else {
-        _onAnimationChanged();
-      }
-    }
-  }
-
-  void _startAnimation({required bool looping}) {
-    _animationController.duration = Duration(
-      microseconds: (Duration.microsecondsPerSecond *
-              _activeFrames.length /
-              widget.fps)
-          .round(),
-    );
-    if (looping) {
-      _animationController.repeat();
-    } else {
-      _animationController.forward(from: 0);
-    }
-  }
-
-  void _onAnimationChanged() {
-    if (!_loaded) return;
-    _animationController.stop();
-    final controller = widget.controller;
-    final prefix = controller?.currentAnimation;
-    _activeFrames = prefix == null ? [] : _frames.getFramesByPrefix(prefix);
-    if (_activeFrames.isNotEmpty) {
-      _animationController.value = 0;
-      _startAnimation(looping: controller!.isLooping);
-    }
-    if (mounted) setState(() {});
-  }
-
-  @override
-  void didUpdateWidget(covariant SpriteWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.controller != widget.controller) {
-      oldWidget.controller?.removeListener(_onAnimationChanged);
-      if (_loaded) oldWidget.controller?.detachFrames(_frames);
-      widget.controller?.addListener(_onAnimationChanged);
-      if (_loaded) {
-        widget.controller?.attachFrames(_frames);
-        if (widget.controller == null) {
-          _activeFrames = [for (final index in _frames.indices) _frames[index]];
-          _animationController.value = 0;
-          _startAnimation(looping: true);
-        } else {
-          _onAnimationChanged();
-        }
-      }
-    } else if (oldWidget.fps != widget.fps && _animationController.isAnimating) {
-      final value = _animationController.value;
-      _animationController.duration = Duration(
-        microseconds: (Duration.microsecondsPerSecond * _activeFrames.length / widget.fps).round(),
-      );
-      if (widget.controller?.isLooping ?? true) {
-        _animationController.repeat();
-      } else {
-        _animationController.forward(from: value);
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    widget.controller?.removeListener(_onAnimationChanged);
-    if (_loaded) widget.controller?.detachFrames(_frames);
-    _spriteData.release();
-    _animationController.dispose();
-    super.dispose();
-  }
-  
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: _spriteLoadingFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return SizedBox(
-            width: widget.width,
-            height: widget.height,
-            child: const Center(child: CircularProgressIndicator()),
-          );
+    return ListenableBuilder(
+      listenable: controller, 
+      builder:(context, _) {
+        if(controller.currentFrame.isEmpty){
+          return const SizedBox.shrink(); // nothing
         }
-
-        if (snapshot.hasError) {
-          return GestureDetector(
-            onTap: widget.onTap,
-            child: SizedBox(
-              width: widget.width,
-              height: widget.height,
-              child: Center(child: Text('Error: ${snapshot.error}')),
-            ),
-          );
-        }
-
-        if (_activeFrames.isEmpty) {
-          return SizedBox(width: widget.width, height: widget.height);
-        }
-        return GestureDetector(
-          onTap: widget.onTap,
-          child: AnimatedBuilder(
-            animation: _animationController, 
-            builder: (context, child) {
-              final frameIndex = (_animationController.value * _activeFrames.length)
-                  .floor().clamp(0, _activeFrames.length - 1);
-          
-              return CustomPaint(
-                size: Size(widget.width, widget.height),
-                painter: _SpritePainter(
-                  image: _sourceImage,
-                  frame: _activeFrames[frameIndex],
-                  filterQuality: widget.filterQuality
-                )
-              );
-            },
-          ),
+        return Sprite(
+          atlas: controller.atlas,
+          frameName: controller.currentFrame,
+          width: width,
+          height: height,
+          flipX: flipX,
+          flipY: flipY,
+          filterQuality: filterQuality,
         );
-      },
+      }
+    );
+  }
+}
+
+class Sprite extends StatelessWidget {
+  final SpriteAtlasData atlas;
+  final String frameName;
+  /// Horizontal and vertical scale factors relative to the original frame size.
+  final double width;
+  final double height;
+  final bool flipX;
+  final bool flipY;
+  final FilterQuality filterQuality;
+
+  const Sprite({
+    super.key,
+    required this.atlas,
+    required this.frameName,
+    this.width = 1,
+    this.height = 1,
+    this.flipX = false,
+    this.flipY = false,
+    this.filterQuality = .none
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final frame = atlas.frameCollection.getFrameByName(frameName: frameName);
+    
+    if(frame == null){
+      throw FlutterError('Sprite frame not found: $frameName');
+    }
+
+    return SizedBox(
+      width: frame.originalSize.width * width,
+      height: frame.originalSize.height * height,
+      child: CustomPaint(
+        painter: _SpritePainter(
+          image: atlas.image, 
+          frame: frame,
+          flipX: flipX, 
+          flipY: flipY, 
+          filterQuality: filterQuality),
+      ),
     );
   }
 }
@@ -255,30 +92,62 @@ class _SpriteWidgetState extends State<SpriteWidget> with SingleTickerProviderSt
 class _SpritePainter extends CustomPainter{
   final ui.Image image;
   final SpriteFrame frame;
+  final bool flipX;
+  final bool flipY;
   final FilterQuality filterQuality;
 
+  final Paint _paint = Paint();
+
   _SpritePainter({
-    required this.image,
+    required this.image, 
     required this.frame,
+    required this.flipX, 
+    required this.flipY, 
     required this.filterQuality
   });
 
+
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..filterQuality = filterQuality;
+    final scaleX = size.width / frame.originalSize.width;
+    final scaleY = size.height / frame.originalSize.height;
+    canvas.save();
+
+    if(flipX || flipY){
+      canvas.translate(
+        flipX ? size.width : 0,
+        flipY ? size.height : 0
+      );
+
+      canvas.scale(
+        flipX ? -1.0 : 1.0,
+        flipY ? -1.0 : 1.0
+      );
+    }
+
+    final dstRect = Rect.fromLTWH(
+      frame.trimOffset.dx * scaleX,
+      frame.trimOffset.dy * scaleY,
+      frame.srcRect.width * scaleX,
+      frame.srcRect.height * scaleY,
+    );
 
     canvas.drawImageRect(
       image,
-      frame.rect,
-      Rect.fromLTWH(0, 0, size.width, size.height),
-      paint
+      frame.srcRect,
+      dstRect,
+      _paint..filterQuality = filterQuality,
     );
+    canvas.restore();
   }
 
   @override
   bool shouldRepaint(covariant _SpritePainter oldDelegate) {
-    return oldDelegate.frame != frame;
+    return oldDelegate.image != image ||
+        oldDelegate.frame != frame ||
+        oldDelegate.flipX != flipX ||
+        oldDelegate.flipY != flipY ||
+        oldDelegate.filterQuality != filterQuality;
   }
 
 }
