@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class Background extends StatelessWidget {
   static final Map<String,Image> _images = {
     'background': Image.asset('assets/images/background.png', fit: BoxFit.cover,),
-    'pillar' : Image.asset('assets/images/pillar', fit: BoxFit.cover,)
+    'pillar' : Image.asset('assets/images/pillar.png', fit: BoxFit.cover,)
   };
 
   const new({super.key});
@@ -23,20 +23,18 @@ class Background extends StatelessWidget {
               flex: 1,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(
-                  maxHeight: 0,
                   maxWidth: 400,
                 ),
                 child: _images['pillar'],
               ),
             ),
-            Transform.flip(
-              flipX: true,
-              flipY: false,
-              child: Flexible(
-                flex: 1,
+            Flexible(
+              flex: 1,
+              child: Transform.flip(
+                flipX: true,
+                flipY: false,
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(
-                    maxHeight: 0,
                     maxWidth: 400
                   ),
                   child: _images['pillar'],

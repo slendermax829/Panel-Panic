@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:panel_puzzle/game/board.dart';
+import 'package:panel_puzzle/game/panel.dart';
 
 enum Mode{
   Random,
@@ -11,7 +12,7 @@ enum Mode{
 class GameSet extends StatefulWidget {
   static const Mode mode = .Random;
   static const int gridSize = 4;
-  static const int scrambledMoves = 2;
+  static const int scrambledMoves = 1;
   static const int _tries = 3;
 
   const new({super.key});
@@ -31,6 +32,7 @@ class _GameSetState extends State<GameSet> {
   late int _tries;
 
   bool _isSolved = false;
+  final Set<int> _pendingVictoryPanels = {};
 
   int get _numOfPanels => (GameSet.gridSize * GameSet.gridSize);
 
@@ -98,18 +100,26 @@ class _GameSetState extends State<GameSet> {
       _applyFlipLogic(_playerBoard, index);
       _moves--;
       _isSolved = listEquals(_playerBoard, _targetBoard);
+      if (_isSolved) {
+        _pendingVictoryPanels
+          ..clear()
+          ..addAll(List.generate(_numOfPanels, (index) => index));
+      }
     });
 
     // Check conditions AFTER the move
-    if(_isSolved){
-      _showWinDialog();
-    } else if(_moves == 0){
+    if(!_isSolved && _moves == 0){
       if(_tries > 1){
         _tryAgainDialog();
       } else {
         _showGameOverDialog();
       }
     }
+  }
+
+  void _onVictoryComplete(int index) {
+    if (!mounted || !_isSolved || !_pendingVictoryPanels.remove(index)) return;
+    if (_pendingVictoryPanels.isEmpty) _showWinDialog();
   }
 
   void _showWinDialog(){
@@ -188,8 +198,6 @@ class _GameSetState extends State<GameSet> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        backgroundColor: Colors.black.withValues(alpha: .1),
-        foregroundColor: Colors.white,
         leading: Column(
           mainAxisSize: .min,
           children: [
@@ -217,7 +225,6 @@ class _GameSetState extends State<GameSet> {
       body: SafeArea(
         child: Stack(
           children: [
-            _buidBackGround(),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               child: Column(
@@ -246,6 +253,8 @@ class _GameSetState extends State<GameSet> {
                       panels: _playerBoard, 
                       isInteractive: true,
                       onPanelTap: _onPlayerTap,
+                      isVictory: _isSolved,
+                      onVictoryComplete: _onVictoryComplete,
                     ),
                   )
                 ],
@@ -256,53 +265,4 @@ class _GameSetState extends State<GameSet> {
       ),
     );
   }
-}
-
-Widget _buidBackGround(){
-  return Stack(
-    children: [
-      Positioned.fill(
-        child: Image.asset(
-          'assets/images/background.png',
-          fit: BoxFit.cover
-        ),
-      ),
-      Row(
-        mainAxisAlignment: .spaceBetween,
-        crossAxisAlignment: .stretch,
-        children:[
-          Flexible(
-            flex: 1,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: 400,
-                minWidth: 0
-              ),
-              child: Image.asset(
-                'assets/images/pillar.png',
-                fit: BoxFit.cover
-              ),
-            ),
-          ),
-          Transform.flip(
-            flipX: true,
-            flipY: false,
-            child: Flexible(
-              flex: 1,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: 400,
-                  minWidth: 0
-                ),
-                child: Image.asset(
-                  'assets/images/pillar.png',
-                  fit: BoxFit.cover
-                ),
-              ),
-            )
-          )
-        ]
-      )
-    ],
-  );
 }

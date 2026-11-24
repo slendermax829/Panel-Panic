@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:panel_puzzle/game/panel.dart';
 
 const Map<String,Color> _panelColors= {
   'front' : Colors.tealAccent,
@@ -15,13 +16,17 @@ class Board extends StatelessWidget {
   final List<bool> panels;
   final bool isInteractive;
   final ValueChanged<int>? onPanelTap;
+  final bool isVictory;
+  final ValueChanged<int>? onVictoryComplete;
 
-  const Board({
+  Board({
     super.key,
     required this.boardSize,
     required this.panels,
     required this.isInteractive,
-    this.onPanelTap
+    this.onPanelTap,
+    this.isVictory = false,
+    this.onVictoryComplete,
   });
 
   @override
@@ -45,14 +50,18 @@ class Board extends StatelessWidget {
           ), 
           itemBuilder:(context, index) {
             final bool flippedPanel = panels[index];
+
             return GestureDetector(
               onTap: isInteractive && onPanelTap != null
                       ? () => onPanelTap!(index)
                       : null,
-              child: Card(
-                color: !flippedPanel ? _panelColors['front'] : _panelColors['back'],
-                child: !flippedPanel ? _panelIcons['front'] : _panelIcons['back'],
-              ),
+              child: Panel(
+                isFlipped: flippedPanel,
+                isVictory: isVictory,
+                onVictoryComplete: onVictoryComplete == null
+                    ? null
+                    : () => onVictoryComplete!(index),
+              )
             );
           },
         ),

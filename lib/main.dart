@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:panel_puzzle/game/Board.dart';
 import 'package:panel_puzzle/game/game_set.dart';
+import 'package:panel_puzzle/shared/background.dart';
 import 'package:panel_puzzle/shared/sprite_demo.dart';
 import 'package:panel_puzzle/sprite/sprite.dart';
 import 'package:window_manager/legacy.dart';
@@ -37,10 +38,24 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
       theme: ThemeData(
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+        //colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+        scaffoldBackgroundColor: Colors.transparent,
+        appBarTheme: AppBarTheme(
+          backgroundColor: Color.fromARGB(163, 0, 0, 0),
+          foregroundColor: Colors.white,
+        )
       ),
-      //home: const MyHomePage(),
-      home: const SpriteDemo()
+      builder: (context, child) {
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            const IgnorePointer(child: Background()),
+            if (child != null) child, // put other widget, screens, etc...
+          ],
+        );
+      },
+      home: const TestGrid(),
+      //home: const SpriteDemo()
     );
   }
 }

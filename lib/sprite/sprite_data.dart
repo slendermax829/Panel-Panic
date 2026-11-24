@@ -18,16 +18,24 @@ class SpriteAtlasData{
 
 class SpriteDataCollection{
   static final Map<String, SpriteAtlasData> _spriteCache = {};
+  static final Map<String, Future<SpriteAtlasData>> _loading = {};
   static int _references = 0;
 
   static Future<SpriteAtlasData> acquireData(String filename) async {
     if(_spriteCache[filename] != null) return _spriteCache[filename]!;
 
-    final loadedData = await _load(filename);
-    final data = _spriteCache.putIfAbsent(filename, () => loadedData);
-    _references++;
-
-    return data;
+    final pending = _loading[filename];
+    if (pending != null) return pending;
+    final future = _load(filename);
+    _loading[filename] = future;
+    try {
+      final data = await future;
+      _spriteCache[filename] = data;
+      _references++;
+      return data;
+    } finally {
+      _loading.remove(filename);
+    }
   }
 
   static release(String filename){
