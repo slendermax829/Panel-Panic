@@ -12,6 +12,8 @@ class Titlescreen extends StatefulWidget {
 }
 
 class _TitlescreenState extends State<Titlescreen> {
+  static const double _titleScale = 0.6;
+  static const double _menuScale = 0.05;
   
   void _navigateToScreen(BuildContext context, Offset position, Widget screen){
     final navigator = Navigator.of(context);
@@ -43,69 +45,71 @@ class _TitlescreenState extends State<Titlescreen> {
                   constraints: const BoxConstraints(maxWidth: 420),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    spacing: 12,
+                    spacing: 5,
                     children: [
-                      const Text(
-                        'Panel Panic',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          wordSpacing: 10,
-                          fontSize: 48,
-                          color: Colors.white,
-                          decoration: TextDecoration.underline,
-                          decorationColor: Colors.white
-                        ),
+                      Image.asset(
+                        'assets/images/title.png',
+                        scale: _titleScale,
+                        fit: BoxFit.contain,
                       ),
-                      const SizedBox(height: 100),
-                      Menuitem(child: Card(
-                            clipBehavior: Clip.antiAlias,
-                            child: Builder(
-                              builder: (cardContext) {
-                                return InkWell(
-                                  onTap: () {
-                                    final box = cardContext.findRenderObject()! as RenderBox;
-                                    final position = box.localToGlobal(box.size.center(Offset.zero)); // gets the card's middle position to render transition
-                                    _navigateToScreen(context, position, const GameSet.randomMode());
-                                  },
-                                  child: const SizedBox(
-                                    width: double.infinity,
-                                    height: 80,
-                                    child: Center(child: Text('Random Game', style: TextStyle(color: Colors.white),)),
-                                  ),
-                                );
+                      const SizedBox(height: 50),
+                      Menuitem(child: Builder(
+                          builder: (context) {
+                            return InkWell(
+                              hoverColor: Colors.transparent,
+                              splashColor: Colors.transparent,
+                              onTap: () {
+                                final box = context.findRenderObject()! as RenderBox;
+                                final position = box.localToGlobal(box.size.center(Offset.zero)); // gets the card's middle position to render transition
+                                _navigateToScreen(context, position, const GameSet.randomMode());
                               },
-                            ),
-                          )
-                      ),
-                      Menuitem(child: Card(
-                          clipBehavior: Clip.antiAlias,
-                          child: InkWell(
-                            onTapUp: (details) {
-                              debugPrint('Work in progress');
-                            },
-                            child: SizedBox(
-                              width: double.infinity,
-                              height: 80,
-                              child: Center(child: Text('Custom Game', style: TextStyle(color: Colors.white),)),
-                            ),
-                          ),
+                              child: Image.asset(
+                                'assets/images/random game.png',
+                                scale: _menuScale,
+                                fit: .contain,
+                              )
+                            );
+                          },
                         )
                       ),
-                      Menuitem(child: Card(
-                          clipBehavior: Clip.antiAlias,
-                          child: InkWell(
-                            onTapUp: (details) {
-                              debugPrint('Work in progress');
-                            },
-                            child: SizedBox(
-                              width: double.infinity,
-                              height: 80,
-                              child: Center(child: Text('Create Custom Board', style: TextStyle(color: Colors.white),)),
-                            ),
-                          ),
+                      Menuitem(child: Builder(
+                          builder: (context) {
+                            return InkWell(
+                              hoverColor: Colors.transparent,
+                              onTap: () {
+                                debugPrint('Work in Progress');
+                                // final box = context.findRenderObject()! as RenderBox;
+                                // final position = box.localToGlobal(box.size.center(Offset.zero)); // gets the card's middle position to render transition
+                                // _navigateToScreen(context, position, const GameSet.randomMode());
+                              },
+                              child: Image.asset(
+                                'assets/images/custom game.png',
+                                scale: _menuScale,
+                                fit: .contain,
+                              )
+                            );
+                          },
                         )
                       ),
-
+                      Menuitem(child: Builder(
+                          builder: (context) {
+                            return InkWell(
+                              hoverColor: Colors.transparent,
+                              onTap: () {
+                                debugPrint('Work in Progress');
+                                // final box = context.findRenderObject()! as RenderBox;
+                                // final position = box.localToGlobal(box.size.center(Offset.zero)); // gets the card's middle position to render transition
+                                // _navigateToScreen(context, position, const GameSet.randomMode());
+                              },
+                              child: Image.asset(
+                                'assets/images/board creation.png',
+                                scale: _menuScale,
+                                fit: .contain,
+                              )
+                            );
+                          },
+                        )
+                      ),
                     ],
                   ),
                 ),

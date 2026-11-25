@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TextureAtlas imagePath="Board.png">
+	<!-- Created with Adobe Animate version 24.0.16.11 -->
+	<!-- http://www.adobe.com/products/animate.html -->
+	<SubTexture name="board0000" x="0" y="0" width="712" height="712"/>
+	<SubTexture name="board0001" x="0" y="0" width="712" height="712"/>
+	<SubTexture name="board0002" x="742" y="0" width="712" height="712"/>
+	<SubTexture name="board0003" x="742" y="0" width="712" height="712"/>
+	<SubTexture name="board0004" x="1484" y="0" width="712" height="712"/>
+	<SubTexture name="board0005" x="1484" y="0" width="712" height="712"/>
+	<SubTexture name="board0006" x="2226" y="0" width="712" height="712"/>
+	<SubTexture name="board0007" x="2226" y="0" width="712" height="712"/>
+	<SubTexture name="board0008" x="2968" y="0" width="712" height="712"/>
+	<SubTexture name="board0009" x="2968" y="0" width="712" height="712"/>
+</TextureAtlas>

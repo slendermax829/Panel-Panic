@@ -22,6 +22,7 @@ class SpriteDataCollection{
   static int _references = 0;
 
   static int get numOfAssetsLoaded => _spriteCache.length;
+  static int get currReferences => _references;
 
   /// Loads and caches every PNG/XML atlas pair declared under assets/sprites.
   static Future<void> loadAll() async{

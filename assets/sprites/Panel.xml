@@ -1,0 +1,74 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TextureAtlas imagePath="Panel.png">
+	<!-- Created with Adobe Animate version 24.0.16.11 -->
+	<!-- http://www.adobe.com/products/animate.html -->
+	<SubTexture name="clear panel0000" x="0" y="0" width="416" height="388"/>
+	<SubTexture name="clear panel0001" x="446" y="0" width="416" height="388"/>
+	<SubTexture name="clear panel0002" x="892" y="0" width="416" height="388"/>
+	<SubTexture name="clear panel0003" x="1338" y="0" width="416" height="388"/>
+	<SubTexture name="clear panel0004" x="1784" y="0" width="416" height="388"/>
+	<SubTexture name="clear panel0005" x="2230" y="0" width="416" height="388"/>
+	<SubTexture name="clear panel0006" x="2676" y="0" width="416" height="388"/>
+	<SubTexture name="clear panel0007" x="3122" y="0" width="416" height="388"/>
+	<SubTexture name="clear panel0008" x="3568" y="0" width="416" height="388"/>
+	<SubTexture name="clear panel0009" x="0" y="418" width="416" height="388"/>
+	<SubTexture name="clear panel0010" x="0" y="418" width="416" height="388"/>
+	<SubTexture name="clear panel0011" x="446" y="418" width="416" height="388"/>
+	<SubTexture name="clear panel0012" x="446" y="418" width="416" height="388"/>
+	<SubTexture name="panel flipping0000" x="892" y="418" width="416" height="388" frameX="0" frameY="0" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel flipping0001" x="892" y="418" width="416" height="388" frameX="0" frameY="0" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel flipping0002" x="1338" y="418" width="404" height="388" frameX="0" frameY="0" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel flipping0003" x="1338" y="418" width="404" height="388" frameX="0" frameY="0" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel flipping0004" x="1772" y="418" width="340" height="389" frameX="-29" frameY="-3" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel flipping0005" x="1772" y="418" width="340" height="389" frameX="-29" frameY="-3" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel flipping0006" x="2142" y="418" width="136" height="390" frameX="-140" frameY="-1" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel flipping0007" x="2142" y="418" width="136" height="390" frameX="-140" frameY="-1" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel flipping0008" x="2308" y="418" width="340" height="389" frameX="-29" frameY="-3" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel flipping0009" x="2308" y="418" width="340" height="389" frameX="-29" frameY="-3" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel flipping0010" x="2678" y="418" width="401" height="388" frameX="-15" frameY="0" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel flipping0011" x="2678" y="418" width="401" height="388" frameX="-15" frameY="0" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel flipping0012" x="3109" y="418" width="416" height="388" frameX="0" frameY="0" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel flipping0013" x="3109" y="418" width="416" height="388" frameX="0" frameY="0" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel flipping0014" x="3555" y="418" width="404" height="388" frameX="0" frameY="0" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel flipping0015" x="3555" y="418" width="404" height="388" frameX="0" frameY="0" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel flipping0016" x="0" y="838" width="340" height="389" frameX="-29" frameY="-3" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel flipping0017" x="0" y="838" width="340" height="389" frameX="-29" frameY="-3" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel flipping0018" x="2142" y="418" width="136" height="390" frameX="-140" frameY="-1" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel flipping0019" x="2142" y="418" width="136" height="390" frameX="-140" frameY="-1" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel flipping0020" x="370" y="838" width="340" height="389" frameX="-29" frameY="-3" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel flipping0021" x="370" y="838" width="340" height="389" frameX="-29" frameY="-3" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel flipping0022" x="740" y="838" width="401" height="388" frameX="-15" frameY="0" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel flipping0023" x="740" y="838" width="401" height="388" frameX="-15" frameY="0" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel_flip_10000" x="892" y="418" width="416" height="388" frameX="0" frameY="0" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel_flip_10001" x="892" y="418" width="416" height="388" frameX="0" frameY="0" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel_flip_10002" x="1338" y="418" width="404" height="388" frameX="0" frameY="0" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel_flip_10003" x="1338" y="418" width="404" height="388" frameX="0" frameY="0" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel_flip_10004" x="1772" y="418" width="340" height="389" frameX="-29" frameY="-3" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel_flip_10005" x="1772" y="418" width="340" height="389" frameX="-29" frameY="-3" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel_flip_10006" x="2142" y="418" width="136" height="390" frameX="-140" frameY="-1" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel_flip_10007" x="2142" y="418" width="136" height="390" frameX="-140" frameY="-1" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel_flip_10008" x="2308" y="418" width="340" height="389" frameX="-29" frameY="-3" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel_flip_10009" x="2308" y="418" width="340" height="389" frameX="-29" frameY="-3" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel_flip_10010" x="2678" y="418" width="401" height="388" frameX="-15" frameY="0" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel_flip_10011" x="2678" y="418" width="401" height="388" frameX="-15" frameY="0" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel_flip_20000" x="3109" y="418" width="416" height="388" frameX="0" frameY="0" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel_flip_20001" x="3109" y="418" width="416" height="388" frameX="0" frameY="0" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel_flip_20002" x="3555" y="418" width="404" height="388" frameX="0" frameY="0" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel_flip_20003" x="3555" y="418" width="404" height="388" frameX="0" frameY="0" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel_flip_20004" x="0" y="838" width="340" height="389" frameX="-29" frameY="-3" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel_flip_20005" x="0" y="838" width="340" height="389" frameX="-29" frameY="-3" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel_flip_20006" x="2142" y="418" width="136" height="390" frameX="-140" frameY="-1" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel_flip_20007" x="2142" y="418" width="136" height="390" frameX="-140" frameY="-1" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel_flip_20008" x="370" y="838" width="340" height="389" frameX="-29" frameY="-3" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel_flip_20009" x="370" y="838" width="340" height="389" frameX="-29" frameY="-3" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel_flip_20010" x="740" y="838" width="401" height="388" frameX="-15" frameY="0" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="panel_flip_20011" x="740" y="838" width="401" height="388" frameX="-15" frameY="0" frameWidth="416" frameHeight="392"/>
+	<SubTexture name="wrong panel0000" x="1171" y="838" width="416" height="388"/>
+	<SubTexture name="wrong panel0001" x="1171" y="838" width="416" height="388"/>
+	<SubTexture name="wrong panel0002" x="1617" y="838" width="416" height="388"/>
+	<SubTexture name="wrong panel0003" x="1617" y="838" width="416" height="388"/>
+	<SubTexture name="wrong panel0004" x="2063" y="838" width="416" height="388"/>
+	<SubTexture name="wrong panel0005" x="2063" y="838" width="416" height="388"/>
+	<SubTexture name="wrong panel0006" x="2509" y="838" width="416" height="388"/>
+	<SubTexture name="wrong panel0007" x="2509" y="838" width="416" height="388"/>
+</TextureAtlas>

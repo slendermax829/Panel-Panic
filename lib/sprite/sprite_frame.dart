@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 
 class SpriteFrame{
-  static final RegExp _reg = RegExp(r'^(.+?)\s*(\d+)$');
+  static final RegExp _reg = RegExp(r'^(.+?)\s*(\d{4})$|^(.+?)\s*(\d+)$');
+
+  static Match? _frameMatch(String name) => _reg.firstMatch(name.trim());
+
+  static String _prefix(Match match) => (match.group(1) ?? match.group(3)!).trimRight();
+
+  static int _number(Match match) => int.parse(match.group(2) ?? match.group(4)!);
 
   final String textureName;
   final Rect srcRect;
@@ -18,21 +24,21 @@ class SpriteFrame{
   ({double width, double height}) get frameSizes => (width: originalSize.width, height: originalSize.height);
 
   String get frameName{
-    Match? match = _reg.firstMatch(textureName.trim());
+    final match = _frameMatch(textureName);
     if(match ==  null){
       throw FormatException('Sprite frame has no numeric suffix: $textureName');
     }
 
-    return match.group(1)!.trimRight();
+    return _prefix(match);
   }
 
   int get frameNumber{
-    Match? match = _reg.firstMatch(textureName.trim());
+    final match = _frameMatch(textureName);
     if(match == null){
       throw FormatException('Sprite frame has no numeric suffix: $textureName');
     }
 
-    return int.parse(match.group(2)!);
+    return _number(match);
   }
 }
 
@@ -63,8 +69,8 @@ class SpriteFrameCollection{
     final prefixFrames = <SpriteFrame>[];
 
     for(var frame in _frames){
-      final match = SpriteFrame._reg.firstMatch(frame.textureName.trim());
-      if(match != null && match.group(1)!.trimRight() == prefix){
+      final match = SpriteFrame._frameMatch(frame.textureName);
+      if(match != null && SpriteFrame._prefix(match) == prefix){
         prefixFrames.add(frame);
       }
     }

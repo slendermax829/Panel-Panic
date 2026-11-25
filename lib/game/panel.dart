@@ -3,17 +3,26 @@ import 'package:panel_puzzle/sprite/sprite.dart';
 import 'package:panel_puzzle/sprite/sprite_animation_controller.dart';
 import 'package:panel_puzzle/sprite/sprite_data.dart';
 class Panel extends StatefulWidget {
-  final String _filename = 'Kirb';
+  final String _filename = 'Panel';
+
   final bool isFlipped;
   final bool isVictory;
+  final bool isFailed;
   final VoidCallback? onVictoryComplete;
+  final VoidCallback? onFailedComplete;
 
-  const Panel({
+  const Panel.game({
     super.key,
     required this.isFlipped,
     this.isVictory = false,
+    this.isFailed = false,
     this.onVictoryComplete,
+    this.onFailedComplete
   });
+
+  // const Panel.editor({
+
+  // });
 
   @override
   State<Panel> createState() => _PanelState();
@@ -36,11 +45,17 @@ class _PanelState extends State<Panel> with SingleTickerProviderStateMixin{
       final controller = _panelController;
       if (controller != null) _showVictory(controller);
 
-    } else if (!widget.isVictory && oldWidget.isVictory) {
+    } else if (widget.isFailed && !oldWidget.isFailed) {
+      final controller = _panelController;
+      if (controller != null) _showFailed(controller);
+
+    } else if (!widget.isVictory && !widget.isFailed &&
+        (oldWidget.isVictory || oldWidget.isFailed)) {
       final controller = _panelController;
       if (controller != null) _showCurrentFrame(controller);
 
-    } else if (!widget.isVictory && oldWidget.isFlipped != widget.isFlipped) {
+    } else if (!widget.isVictory && !widget.isFailed &&
+        oldWidget.isFlipped != widget.isFlipped) {
       _flipPanel();
     }
   }
@@ -60,6 +75,8 @@ class _PanelState extends State<Panel> with SingleTickerProviderStateMixin{
       try{
         if (widget.isVictory) {
           _showVictory(newController);
+        } else if (widget.isFailed) {
+          _showFailed(newController);
         } else {
           _showCurrentFrame(newController);
         }
@@ -86,8 +103,9 @@ class _PanelState extends State<Panel> with SingleTickerProviderStateMixin{
     }
   }
 
-  String get _currentPrefix => widget.isFlipped ? 'kirb groove' : 'kirb hurt';
-  String get _clearPrefix => 'kirb victory';
+  String get _currentPrefix => widget.isFlipped ? 'panel_flip_1' : 'panel_flip_2';
+  String get _clearPrefix => 'clear panel';
+  String get _failedPrefix => 'wrong panel';
 
   void _showCurrentFrame(SpriteAnimationController controller) {
     final frame = controller.atlas.frameCollection.getFramesByPrefix(prefix: _currentPrefix).last;
@@ -97,14 +115,14 @@ class _PanelState extends State<Panel> with SingleTickerProviderStateMixin{
   }
 
   void _flipPanel(){
-    _panelController?.playLoopedDuration(
+    _panelController?.play(
       _currentPrefix,
-      const Duration(seconds: 1),
+      loop: false,
       fps: 24,
-      onComplete: () {
+      onComplete: (){
         final controller = _panelController;
-        if (controller != null) _showCurrentFrame(controller);
-      },
+        if(controller != null) _showCurrentFrame(controller);
+      }
     );
   }
 
@@ -113,8 +131,20 @@ class _PanelState extends State<Panel> with SingleTickerProviderStateMixin{
       _clearPrefix,
       fps: 24,
       loop: false,
+      repeatCount: 2,
       onComplete: () {
         if (mounted && widget.isVictory) widget.onVictoryComplete?.call();
+      },
+    );
+  }
+
+  void _showFailed(SpriteAnimationController controller){
+    controller.play(
+      _failedPrefix,
+      fps: 24,
+      repeatCount: 6,
+      onComplete: () {
+        if (mounted && widget.isFailed) widget.onFailedComplete?.call();
       },
     );
   }
@@ -122,6 +152,7 @@ class _PanelState extends State<Panel> with SingleTickerProviderStateMixin{
   @override
   Widget build(BuildContext context) {
     final controller = _panelController;
+
     if (_loadError != null) {
       return Center(child: Text('Error loading sprite: $_loadError'));
     }

@@ -17,7 +17,7 @@ Future<void> main() async {
   await SpriteDataCollection.loadAll();
 
   debugPrint('Done loading assets');
-  debugPrint('Assets Loaded: ${SpriteDataCollection.numOfAssetsLoaded}');
+  debugPrint('Assets Loaded: ${SpriteDataCollection.numOfAssetsLoaded}/n');
 
   runApp(const MyApp());
 }
@@ -42,6 +42,7 @@ class MyApp extends StatelessWidget {
           color: Colors.teal,
           shape: BoxBorder.all(color: Colors.white, width: 5)
         ),
+        fontFamily: 'GameFonts'
       ),
       builder: (context, child) {
         return Stack(

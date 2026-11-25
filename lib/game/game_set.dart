@@ -12,7 +12,9 @@ class GameSet extends StatefulWidget {
   static const int gridSize = 4;
   static const int scrambledMoves = 1;
   static const int _tries = 3;
+
   static const int scoreStreak = 0; // for Random Board Mode only
+
 
   final Mode mode;
 
@@ -39,7 +41,11 @@ class _GameSetState extends State<GameSet> {
   late int _tries;
 
   bool _isSolved = false;
+  bool _isFailed = false;
+
   final Set<int> _pendingVictoryPanels = {};
+  final Set<int> _pendingFailedPanels = {};
+  final Set<int> _failedPanels = {};
 
   int get _numOfPanels => (GameSet.gridSize * GameSet.gridSize);
 
@@ -64,6 +70,10 @@ class _GameSetState extends State<GameSet> {
       _moves = GameSet.scrambledMoves;
       _tries = GameSet._tries;
       _isSolved = false;
+      _isFailed = false;
+      _pendingVictoryPanels.clear();
+      _pendingFailedPanels.clear();
+      _failedPanels.clear();
     });
   }
 
@@ -107,26 +117,44 @@ class _GameSetState extends State<GameSet> {
       _applyFlipLogic(_playerBoard, index);
       _moves--;
       _isSolved = listEquals(_playerBoard, _targetBoard);
+
       if (_isSolved) {
         _pendingVictoryPanels
           ..clear()
           ..addAll(List.generate(_numOfPanels, (index) => index));
+
+      } else if (_moves == 0) {
+        _tries--;
+        _isFailed = true;
+        _failedPanels
+          ..clear()
+          ..addAll(
+            List.generate(_numOfPanels, (index) => index).where(
+              (index) => _tries == 0 || _playerBoard[index] != _targetBoard[index],
+            ),
+          );
+
+        _pendingFailedPanels
+          ..clear()
+          ..addAll(_failedPanels);
       }
     });
-
-    // Check conditions AFTER the move
-    if(!_isSolved && _moves == 0){
-      if(_tries > 1){
-        _tryAgainDialog();
-      } else {
-        _showGameOverDialog();
-      }
-    }
   }
 
   void _onVictoryComplete(int index) {
     if (!mounted || !_isSolved || !_pendingVictoryPanels.remove(index)) return;
     if (_pendingVictoryPanels.isEmpty) _showWinDialog();
+  }
+
+  void _onFailedComplete(int index){
+    if (!mounted || !_isFailed || !_pendingFailedPanels.remove(index)) return;
+    if (_pendingFailedPanels.isEmpty) {
+      if (_tries == 0) {
+        _showGameOverDialog();
+      } else {
+        _tryAgainDialog();
+      }
+    }
   }
 
   void _showWinDialog(){
@@ -155,7 +183,7 @@ class _GameSetState extends State<GameSet> {
       barrierDismissible: false,
       builder:(context) => AlertDialog(
         title: const Text('Try Again'),
-        content: Text('Ran out of tries. Tries left ${_tries-1}'),
+        content: Text('Ran out of moves. Tries left $_tries'),
         actions: [
           TextButton(
             onPressed:() {
@@ -175,7 +203,7 @@ class _GameSetState extends State<GameSet> {
       barrierDismissible: false,
       builder:(context) => AlertDialog(
         title: const Text('Game Over'),
-        content: Text('You ran out of moves!'),
+        content: Text('You ran out of tries!'),
         actions: [
           TextButton(
             onPressed:() {
@@ -190,13 +218,14 @@ class _GameSetState extends State<GameSet> {
   }
 
   void _resetCurrentPuzzle(){
-    final Random rand = Random();
     setState((){
       _playerBoard = List.from(_initialPlayerBoard);
       _targetBoard = List.from(_initialTargetBoard);
       _moves = GameSet.scrambledMoves;
-      _tries--;
       _isSolved = false;
+      _isFailed = false;
+      _pendingFailedPanels.clear();
+      _failedPanels.clear();
     });
   }
 
@@ -209,8 +238,8 @@ class _GameSetState extends State<GameSet> {
         leading: Column(
           mainAxisSize: .min,
           children: [
-            Text('Tries: $_tries', style: const TextStyle(fontSize: 14)),
-            Text('Moves: $_moves / ${GameSet.scrambledMoves}', style: const TextStyle(fontSize: 14))
+            Text('Tries: $_tries', style: const TextStyle(fontSize: 17)),
+            Text('Moves: $_moves / ${GameSet.scrambledMoves}', style: const TextStyle(fontSize: 17))
           ],
         ),
         leadingWidth: 100,
@@ -242,9 +271,11 @@ class _GameSetState extends State<GameSet> {
                     'TARGET',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      letterSpacing: 1.3,
+                      fontSize: 25,
+                      letterSpacing: 6,
                       color: Colors.yellowAccent,
-                      decoration: TextDecoration.underline
+                      decoration: TextDecoration.underline,
+                      decorationColor: Colors.yellowAccent
                     ),
                   ),
                   Expanded(
@@ -256,7 +287,7 @@ class _GameSetState extends State<GameSet> {
                       onVictoryComplete: _onVictoryComplete,
                     ),
                   ),
-                  const Divider(height: 15,),
+                  const Divider(height: 15, thickness: 3, indent: 50, endIndent: 50,),
                   Expanded(
                     child: Board(
                       boardSize: GameSet.gridSize, 
@@ -264,7 +295,9 @@ class _GameSetState extends State<GameSet> {
                       isInteractive: true,
                       onPanelTap: _onPlayerTap,
                       isVictory: _isSolved,
+                      failedPanels: _failedPanels,
                       onVictoryComplete: _onVictoryComplete,
+                      onFailedComplete: _onFailedComplete,
                     ),
                   )
                 ],
