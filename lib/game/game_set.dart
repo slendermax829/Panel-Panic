@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:panel_puzzle/game/board.dart';
 import 'package:panel_puzzle/game/titleScreen.dart';
 import 'package:panel_puzzle/shared/GameTransition.dart';
+import 'package:panel_puzzle/shared/highscore.dart';
 
 enum Mode{
   Random,
@@ -11,15 +12,22 @@ enum Mode{
 }
 
 class GameSet extends StatefulWidget {
-  static final Random rand = Random();
-  static const int gridSize = 4;
+  static final Random _rand = Random();
+
+  static int gridSize = 4;
   static int _scrambledMoves = 1;
   static const int _tries = 3;
 
   static int scoreStreak = 0; // for Random Board Mode only
 
   static void setScrambledMoves(){
-    _scrambledMoves = rand.nextInt(3) + 1;
+    _scrambledMoves = _rand.nextInt(3) + 1;
+  }
+
+  static void _setBoardSize(){
+    if(scoreStreak % 5 == 0){
+      gridSize++;
+    }
   }
 
   final Mode mode;
@@ -203,6 +211,10 @@ class _GameSetState extends State<GameSet> {
     }
   }
 
+  void _saveScore() async {
+
+  }
+
   void _showWinDialog(){
       showDialog(
         context: context, 
@@ -219,6 +231,7 @@ class _GameSetState extends State<GameSet> {
                   MediaQuery.sizeOf(context).center(Offset.zero),
                   onMidPoint: () {
                     GameSet.setScrambledMoves();
+                    GameSet._setBoardSize();
                     _generateNewPuzzle();
                     navigator.pop(PageRouteBuilder<void>(
                       transitionDuration: Duration.zero,
@@ -256,13 +269,28 @@ class _GameSetState extends State<GameSet> {
     );
   }
 
-  void _showGameOverDialog(){
+  void _showGameOverDialog() async{
+    final savedScore = await StreakHighScore.getHighScore();
+
+    if(GameSet.scoreStreak > savedScore){
+      await StreakHighScore.saveHighScore(GameSet.scoreStreak);
+    }
+
     showDialog(
       context: context, 
       barrierDismissible: false,
       builder:(context) => AlertDialog(
-        title: const Text('Game Over'),
-        content: Text('You ran out of tries!'),
+        title: const Text('Game Over', textAlign: TextAlign.center,),
+        content: Column(
+          mainAxisAlignment: .center,
+          mainAxisSize: .min,
+          children: [
+            Text('You ran out of tries!'),
+            if (GameSet.scoreStreak > savedScore)
+              Text('New HighScore: ${GameSet.scoreStreak}')
+          ],
+        ),
+        actionsAlignment: .center,
         actions: [
           TextButton(
             onPressed:() {
@@ -302,15 +330,16 @@ class _GameSetState extends State<GameSet> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         automaticallyImplyLeading: false, // disable back button from navigation stack
-        title: mode == .Random ? Text('Random Game'): Text('Custom Game'),
+        title: mode == .Random ? Text('Random Game', style: TextStyle(fontFamily: 'GameFonts', fontSize: 36),)
+                                : Text('Custom Game', style: TextStyle(fontFamily: 'GameFonts', fontSize: 36)),
         titleTextStyle: TextStyle(
           fontSize: 20,
         ),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: Icon(Icons.menu),
-            tooltip: 'Menu',
+            icon: Icon(Icons.arrow_back_ios),
+            tooltip: 'Back to menu',
             onPressed: () => _navigateBack(),
           )
         ],

@@ -51,7 +51,7 @@ class MyApp extends StatelessWidget {
           color: Colors.teal,
           shape: BoxBorder.all(color: Colors.white, width: 5)
         ),
-        fontFamily: 'GameFonts'
+        fontFamily: 'GameFonts',
       ),
       builder: (context, child) {
         return Stack(

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:panel_puzzle/game/game_set.dart';
 import 'package:panel_puzzle/shared/GameTransition.dart';
+import 'package:panel_puzzle/shared/highscore.dart';
 import 'package:panel_puzzle/shared/menuItem.dart';
 
 class Titlescreen extends StatefulWidget {
 
-  const new({super.key});
+  const Titlescreen({super.key});
 
   @override
   State<Titlescreen> createState() => _TitlescreenState();
@@ -14,18 +15,25 @@ class Titlescreen extends StatefulWidget {
 class _TitlescreenState extends State<Titlescreen> {
   static const double _titleScale = 0.6;
   static const double _menuScale = 0.05;
-  
-  void _navigateToScreen(BuildContext context, Offset position, Widget screen){
+
+  late Future<int> _highScoreFuture = StreakHighScore.getHighScore();
+
+  void _navigateToScreen(BuildContext context, Offset position, Widget screen) async{
     final navigator = Navigator.of(context);
     
     CirclePulseTransition.of(context).trigger(
       position,
-      onMidPoint: () {
-        navigator.push(PageRouteBuilder<void>(
+      onMidPoint: () async {
+        await navigator.push(PageRouteBuilder<void>(
           transitionDuration: Duration.zero,
           reverseTransitionDuration: Duration.zero,
           pageBuilder: (context, animation, secondaryAnimation) => screen,
         ));
+        // Reload the high score after returning from a game
+        if (mounted) {
+          _highScoreFuture = StreakHighScore.getHighScore();
+          setState((){});
+        }
       },
     );
   }
@@ -33,6 +41,22 @@ class _TitlescreenState extends State<Titlescreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        leadingWidth: 400,
+        leading: FutureBuilder<int>(
+          future: _highScoreFuture,
+          builder:(context, snapshot) {
+            if(snapshot.hasData){
+              return Text(
+                'Streak HighScore: ${snapshot.data}',
+                style: TextStyle(fontSize: 30),
+              );
+            }else{
+              return Text('Streak HighScore: ERROR');
+            }
+          },
+        ),
+      ),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) => SingleChildScrollView(
@@ -61,6 +85,7 @@ class _TitlescreenState extends State<Titlescreen> {
                               splashColor: Colors.transparent,
                               onTap: () {
                                 if(GameSet.scoreStreak > 0) GameSet.scoreStreak = 0;
+                                GameSet.gridSize = 3;
                                 GameSet.setScrambledMoves();
                                 
                                 final box = context.findRenderObject()! as RenderBox;
