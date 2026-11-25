@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:panel_puzzle/sprite/sprite.dart';
 import 'package:panel_puzzle/sprite/sprite_animation_controller.dart';
 import 'package:panel_puzzle/sprite/sprite_data.dart';
-
-
 class Panel extends StatefulWidget {
   final String _filename = 'Kirb';
   final bool isFlipped;
@@ -37,9 +35,11 @@ class _PanelState extends State<Panel> with SingleTickerProviderStateMixin{
     if (widget.isVictory && !oldWidget.isVictory) {
       final controller = _panelController;
       if (controller != null) _showVictory(controller);
+
     } else if (!widget.isVictory && oldWidget.isVictory) {
       final controller = _panelController;
       if (controller != null) _showCurrentFrame(controller);
+
     } else if (!widget.isVictory && oldWidget.isFlipped != widget.isFlipped) {
       _flipPanel();
     }
@@ -90,8 +90,8 @@ class _PanelState extends State<Panel> with SingleTickerProviderStateMixin{
   String get _clearPrefix => 'kirb victory';
 
   void _showCurrentFrame(SpriteAnimationController controller) {
-    final frame = controller.atlas.frameCollection
-        .getFramesByPrefix(prefix: _currentPrefix).last;
+    final frame = controller.atlas.frameCollection.getFramesByPrefix(prefix: _currentPrefix).last;
+
     controller.setOnFrame(_currentPrefix, frame.frameNumber);
     controller.pause();
   }

@@ -1,29 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:panel_puzzle/game/Board.dart';
 import 'package:panel_puzzle/game/game_set.dart';
+import 'package:panel_puzzle/game/titleScreen.dart';
 import 'package:panel_puzzle/shared/background.dart';
+import 'package:panel_puzzle/shared/GameTransition.dart';
 import 'package:panel_puzzle/shared/sprite_demo.dart';
 import 'package:panel_puzzle/sprite/sprite.dart';
+import 'package:panel_puzzle/sprite/sprite_data.dart';
 import 'package:window_manager/legacy.dart';
 import 'package:window_manager/window_manager.dart';
 
 const _RESOLUTION = Size(1080, 1920);
 
 Future<void> main() async {
-  // WidgetsFlutterBinding.ensureInitialized();
-  // await windowManager.ensureInitialized();
+  WidgetsFlutterBinding.ensureInitialized();
+  await SpriteDataCollection.loadAll();
 
-  // WindowOptions windowOptions = const WindowOptions(
-  //   size: _RESOLUTION,
-  //   minimumSize: _RESOLUTION, 
-  //   maximumSize: _RESOLUTION,     // Initial width and height
-  //   center: true,                // Center the window on screen
-  // );
-
-  // windowManager.waitUntilReadyToShow(windowOptions, () async {
-  //   await windowManager.show();
-  //   await windowManager.focus();
-  // });
+  debugPrint('Done loading assets');
+  debugPrint('Assets Loaded: ${SpriteDataCollection.numOfAssetsLoaded}');
 
   runApp(const MyApp());
 }
@@ -43,35 +37,23 @@ class MyApp extends StatelessWidget {
         appBarTheme: AppBarTheme(
           backgroundColor: Color.fromARGB(163, 0, 0, 0),
           foregroundColor: Colors.white,
-        )
+        ),
+        cardTheme: CardThemeData(
+          color: Colors.teal,
+          shape: BoxBorder.all(color: Colors.white, width: 5)
+        ),
       ),
       builder: (context, child) {
         return Stack(
           fit: StackFit.expand,
           children: [
             const IgnorePointer(child: Background()),
-            if (child != null) child, // put other widget, screens, etc...
+            CirclePulseTransition(child: child ?? const SizedBox.shrink()),
           ],
         );
       },
-      home: const TestGrid(),
+      home: const Titlescreen(),
       //home: const SpriteDemo()
     );
   }
-}
-
-class TestGrid extends StatefulWidget{
-  const TestGrid({super.key});
-
-  @override
-  State<StatefulWidget> createState() => _TestGridState();
-}
-
-class _TestGridState extends State<TestGrid>{
-
-  @override
-  Widget build(BuildContext context) {
-    return GameSet();
-  }
-
 }

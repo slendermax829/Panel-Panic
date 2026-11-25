@@ -2,7 +2,6 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:panel_puzzle/game/board.dart';
-import 'package:panel_puzzle/game/panel.dart';
 
 enum Mode{
   Random,
@@ -10,12 +9,20 @@ enum Mode{
 }
 
 class GameSet extends StatefulWidget {
-  static const Mode mode = .Random;
   static const int gridSize = 4;
   static const int scrambledMoves = 1;
   static const int _tries = 3;
+  static const int scoreStreak = 0; // for Random Board Mode only
 
-  const new({super.key});
+  final Mode mode;
+
+  const GameSet.randomMode({
+    super.key,
+  }) : mode = .Random;
+
+  const GameSet.customMode({
+    super.key,
+  }) : mode = .Custom;
 
   @override
   State<GameSet> createState() => _GameSetState();
@@ -195,18 +202,19 @@ class _GameSetState extends State<GameSet> {
 
   @override
   Widget build(BuildContext context) {
+    final mode = widget.mode;
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         leading: Column(
           mainAxisSize: .min,
           children: [
-            Text('Tries: $_tries'),
-            Text('Moves: $_moves / ${GameSet.scrambledMoves}')
+            Text('Tries: $_tries', style: const TextStyle(fontSize: 14)),
+            Text('Moves: $_moves / ${GameSet.scrambledMoves}', style: const TextStyle(fontSize: 14))
           ],
         ),
         leadingWidth: 100,
-        title: GameSet.mode == .Random
+        title: mode == .Random
                 ? Text('Random Game')
                 : Text('Custom Game'),
         titleTextStyle: TextStyle(
@@ -243,7 +251,9 @@ class _GameSetState extends State<GameSet> {
                     child: Board(
                       boardSize: GameSet.gridSize, 
                       panels: _targetBoard, 
-                      isInteractive: false
+                      isInteractive: false,
+                      isVictory: _isSolved,
+                      onVictoryComplete: _onVictoryComplete,
                     ),
                   ),
                   const Divider(height: 15,),

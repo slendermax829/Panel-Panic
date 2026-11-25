@@ -2,7 +2,6 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
-import 'package:mime/mime.dart';
 import 'package:panel_puzzle/sprite/sprite_frame.dart';
 import 'package:xml/xml.dart';
 
@@ -19,7 +18,43 @@ class SpriteAtlasData{
 class SpriteDataCollection{
   static final Map<String, SpriteAtlasData> _spriteCache = {};
   static final Map<String, Future<SpriteAtlasData>> _loading = {};
+
   static int _references = 0;
+
+  static int get numOfAssetsLoaded => _spriteCache.length;
+
+  /// Loads and caches every PNG/XML atlas pair declared under assets/sprites.
+  static Future<void> loadAll() async{
+    const spritePath = 'assets/sprites/';
+    final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+
+    final paths = manifest.listAssets().where((path) => path.startsWith(spritePath)).toSet();
+    final stems = paths
+        .where((path) => path.endsWith('.png') || path.endsWith('.xml'))
+        .map((path) => path.substring(0, path.length - 4))
+        .toSet()
+        .toList()..sort();
+
+    if (stems.isEmpty) {
+      throw StateError('No sprite atlases found under $spritePath');
+    }
+
+    final filenames = <String>{};
+
+    for (final stem in stems) {
+      if (!paths.contains('$stem.png') || !paths.contains('$stem.xml')) {
+        throw StateError('Sprite atlas requires both $stem.png and $stem.xml');
+      }
+      final filename = stem.substring(stem.lastIndexOf('/') + 1);
+
+      if (!filenames.add(filename)) {
+        throw StateError('Duplicate sprite atlas name: $filename found');
+      }
+    }
+    for (final filename in filenames) {
+      await acquireData(filename);
+    }
+  }
 
   static Future<SpriteAtlasData> acquireData(String filename) async {
     if(_spriteCache[filename] != null) return _spriteCache[filename]!;
@@ -45,13 +80,26 @@ class SpriteDataCollection{
 
   static Future<SpriteAtlasData> _load(String filename) async{
     final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
-    final imgPath = manifest.listAssets().firstWhere((asset) => asset.endsWith('/$filename.png'));
-    final xmlPath = manifest.listAssets().firstWhere((asset) => asset.endsWith('/$filename.xml'));
+    final assets = manifest.listAssets();
 
-    final image = await atlasSourceImage(imgPath);
-    final spriteFrames = await atlasSpriteFrames(xmlPath);
+    final images = assets.where((asset) =>
+        asset.startsWith('assets/sprites/') && asset.endsWith('/$filename.png')).toList();
 
-    return SpriteAtlasData(image: image, frameCollection: spriteFrames);
+    final xmlFiles = assets.where((asset) =>
+        asset.startsWith('assets/sprites/') && asset.endsWith('/$filename.xml')).toList();
+
+    if (images.length != 1 || xmlFiles.length != 1 || images.single.substring(0, images.single.length - 4) != xmlFiles.single.substring(0, xmlFiles.single.length - 4)) {
+      throw StateError('Expected one matching PNG/XML sprite atlas for "$filename"');
+    }
+
+    final image = await atlasSourceImage(images.single);
+    try {
+      final spriteFrames = await atlasSpriteFrames(xmlFiles.single);
+      return SpriteAtlasData(image: image, frameCollection: spriteFrames);
+    } catch (_) {
+      image.dispose();
+      rethrow;
+    }
   }
 
   static Future<ui.Image> atlasSourceImage(String imgPath) async{
