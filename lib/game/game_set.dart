@@ -2,6 +2,8 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:panel_puzzle/game/board.dart';
+import 'package:panel_puzzle/game/titleScreen.dart';
+import 'package:panel_puzzle/shared/GameTransition.dart';
 
 enum Mode{
   Random,
@@ -9,12 +11,16 @@ enum Mode{
 }
 
 class GameSet extends StatefulWidget {
+  static final Random rand = Random();
   static const int gridSize = 4;
-  static const int scrambledMoves = 1;
+  static int _scrambledMoves = 1;
   static const int _tries = 3;
 
-  static const int scoreStreak = 0; // for Random Board Mode only
+  static int scoreStreak = 0; // for Random Board Mode only
 
+  static void setScrambledMoves(){
+    _scrambledMoves = rand.nextInt(3) + 1;
+  }
 
   final Mode mode;
 
@@ -51,11 +57,51 @@ class _GameSetState extends State<GameSet> {
 
   @override
   void initState() {
-    _moves = GameSet.scrambledMoves;
+    _moves = GameSet._scrambledMoves;
     _tries = GameSet._tries;
     _generateNewPuzzle();
 
     super.initState();
+  }
+
+
+
+  void _navigateBack() async {
+    final bool? confirm = widget.mode == .Custom
+        ? true
+        : await showDialog<bool>(
+            barrierDismissible: false,
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Leave current game?'),
+              content: const Text('Are you sure you want to leave this game?\n Your Streak will not be saved'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('Leave'),
+                ),
+              ],
+            ),
+          );
+      
+    if(confirm! && mounted){
+      final navigator = Navigator.of(context);
+    
+      CirclePulseTransition.of(context).trigger(
+        MediaQuery.sizeOf(context).center(Offset.zero),
+        onMidPoint: () {
+          navigator.push(PageRouteBuilder<void>(
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+            pageBuilder: (context, animation, secondaryAnimation) => Titlescreen(),
+          ));
+        },
+      );
+    }
   }
   
   void _generateNewPuzzle(){
@@ -67,7 +113,7 @@ class _GameSetState extends State<GameSet> {
       _targetBoard = _setBoardIndices(List.from(startingBoard));
       _initialPlayerBoard = List.from(_playerBoard);
       _initialTargetBoard = List.from(_targetBoard);
-      _moves = GameSet.scrambledMoves;
+      _moves = GameSet._scrambledMoves;
       _tries = GameSet._tries;
       _isSolved = false;
       _isFailed = false;
@@ -81,7 +127,7 @@ class _GameSetState extends State<GameSet> {
     final Random rand = Random();
     final Set<int> chosenIndices = {};
 
-    while(chosenIndices.length < GameSet.scrambledMoves){
+    while(chosenIndices.length < GameSet._scrambledMoves){
       chosenIndices.add(rand.nextInt(_numOfPanels));
     }
 
@@ -167,8 +213,21 @@ class _GameSetState extends State<GameSet> {
           actions: [
             TextButton(
               onPressed:() {
-                Navigator.of(context).pop();
-                _generateNewPuzzle();
+                final navigator = Navigator.of(context);
+    
+                CirclePulseTransition.of(context).trigger(
+                  MediaQuery.sizeOf(context).center(Offset.zero),
+                  onMidPoint: () {
+                    GameSet.setScrambledMoves();
+                    _generateNewPuzzle();
+                    navigator.pop(PageRouteBuilder<void>(
+                      transitionDuration: Duration.zero,
+                      reverseTransitionDuration: Duration.zero,
+                      pageBuilder: (context, animation, secondaryAnimation) => GameSet.randomMode(),
+                    ));
+                  },
+                );
+                GameSet.scoreStreak++;
               },
               child: const Text('Next')
             )
@@ -207,10 +266,16 @@ class _GameSetState extends State<GameSet> {
         actions: [
           TextButton(
             onPressed:() {
-              Navigator.of(context).pop();
-              _generateNewPuzzle();
+              final navigator = Navigator.of(context);
+                CirclePulseTransition.of(context).trigger(
+                  MediaQuery.sizeOf(context).center(Offset.zero),
+                  onMidPoint: () {
+                    navigator.pop();
+                    navigator.pop();
+                  },
+                );
             },
-            child: const Text('Try Again')
+            child: const Text('Confirm')
           )
         ],
       ),
@@ -221,7 +286,7 @@ class _GameSetState extends State<GameSet> {
     setState((){
       _playerBoard = List.from(_initialPlayerBoard);
       _targetBoard = List.from(_initialTargetBoard);
-      _moves = GameSet.scrambledMoves;
+      _moves = GameSet._scrambledMoves;
       _isSolved = false;
       _isFailed = false;
       _pendingFailedPanels.clear();
@@ -232,30 +297,21 @@ class _GameSetState extends State<GameSet> {
   @override
   Widget build(BuildContext context) {
     final mode = widget.mode;
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        leading: Column(
-          mainAxisSize: .min,
-          children: [
-            Text('Tries: $_tries', style: const TextStyle(fontSize: 17)),
-            Text('Moves: $_moves / ${GameSet.scrambledMoves}', style: const TextStyle(fontSize: 17))
-          ],
-        ),
-        leadingWidth: 100,
-        title: mode == .Random
-                ? Text('Random Game')
-                : Text('Custom Game'),
+        automaticallyImplyLeading: false, // disable back button from navigation stack
+        title: mode == .Random ? Text('Random Game'): Text('Custom Game'),
         titleTextStyle: TextStyle(
           fontSize: 20,
-          decoration: TextDecoration.underline
         ),
         centerTitle: true,
         actions: [
           IconButton(
             icon: Icon(Icons.menu),
             tooltip: 'Menu',
-            onPressed: () => debugPrint('Menu Pressed'),
+            onPressed: () => _navigateBack(),
           )
         ],
       ),
@@ -279,25 +335,147 @@ class _GameSetState extends State<GameSet> {
                     ),
                   ),
                   Expanded(
-                    child: Board(
-                      boardSize: GameSet.gridSize, 
-                      panels: _targetBoard, 
-                      isInteractive: false,
-                      isVictory: _isSolved,
-                      onVictoryComplete: _onVictoryComplete,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            mainAxisSize: .min,
+                            spacing: 10,
+                            children: [
+                              const FittedBox(
+                                child: Text(
+                                  'TRIES',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 25,
+                                    letterSpacing: 6,
+                                    color: Colors.yellowAccent,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: Colors.yellowAccent
+                                  ),
+                                ),
+                              ),
+                              ...List.generate(GameSet._tries, (index){
+                                final available = index < _tries;
+                                return Semantics(
+                                  child: Container(
+                                    width: 10,
+                                    height: 10,
+                                    margin: const EdgeInsets.symmetric(vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: available ? Colors.green : Colors.red.shade800,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.yellowAccent)
+                                    ),
+                                  ),
+                                );
+                              })
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          flex: 3,
+                          child: Center(
+                            child: AspectRatio(
+                              aspectRatio: 1,
+                              child: Board(
+                                boardSize: GameSet.gridSize,
+                                panels: _targetBoard,
+                                isInteractive: false,
+                                isVictory: _isSolved,
+                                onVictoryComplete: _onVictoryComplete,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Column(
+                            mainAxisSize: .min,
+                            children: [
+                              const FittedBox(
+                                child: Text(
+                                  'STREAK',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 25,
+                                    letterSpacing: 6,
+                                    color: Colors.yellowAccent,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: Colors.yellowAccent
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                '${GameSet.scoreStreak}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 25,
+                                  letterSpacing: 6,
+                                  color: Colors.yellowAccent,
+                                ),
+                              )
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const Divider(height: 15, thickness: 3, indent: 50, endIndent: 50,),
                   Expanded(
-                    child: Board(
-                      boardSize: GameSet.gridSize, 
-                      panels: _playerBoard, 
-                      isInteractive: true,
-                      onPanelTap: _onPlayerTap,
-                      isVictory: _isSolved,
-                      failedPanels: _failedPanels,
-                      onVictoryComplete: _onVictoryComplete,
-                      onFailedComplete: _onFailedComplete,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            mainAxisSize: .min,
+                            spacing: 10,
+                            children: [
+                              const FittedBox(
+                                child: Text(
+                                  'MOVES',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 25,
+                                    letterSpacing: 6,
+                                    color: Colors.yellowAccent,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: Colors.yellowAccent
+                                  ),
+                                ),
+                              ),
+                              FittedBox(
+                                child: Text(
+                                  '$_moves',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 25,
+                                    letterSpacing: 6,
+                                    color: Colors.yellowAccent,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          flex: 3,
+                          child: Center(
+                            child: AspectRatio(
+                              aspectRatio: 1,
+                              child: Board(
+                                boardSize: GameSet.gridSize,
+                                panels: _playerBoard,
+                                isInteractive: true,
+                                onPanelTap: _onPlayerTap,
+                                isVictory: _isSolved,
+                                failedPanels: _failedPanels,
+                                onVictoryComplete: _onVictoryComplete,
+                                onFailedComplete: _onFailedComplete,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                      ],
                     ),
                   )
                 ],

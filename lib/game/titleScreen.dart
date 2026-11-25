@@ -17,6 +17,7 @@ class _TitlescreenState extends State<Titlescreen> {
   
   void _navigateToScreen(BuildContext context, Offset position, Widget screen){
     final navigator = Navigator.of(context);
+    
     CirclePulseTransition.of(context).trigger(
       position,
       onMidPoint: () {
@@ -59,6 +60,9 @@ class _TitlescreenState extends State<Titlescreen> {
                               hoverColor: Colors.transparent,
                               splashColor: Colors.transparent,
                               onTap: () {
+                                if(GameSet.scoreStreak > 0) GameSet.scoreStreak = 0;
+                                GameSet.setScrambledMoves();
+                                
                                 final box = context.findRenderObject()! as RenderBox;
                                 final position = box.localToGlobal(box.size.center(Offset.zero)); // gets the card's middle position to render transition
                                 _navigateToScreen(context, position, const GameSet.randomMode());
