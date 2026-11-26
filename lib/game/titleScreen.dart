@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:panel_puzzle/custom_board/board_creation_mode.dart';
 import 'package:panel_puzzle/game/game_set.dart';
 import 'package:panel_puzzle/shared/GameTransition.dart';
 import 'package:panel_puzzle/shared/highscore.dart';
@@ -29,7 +30,7 @@ class _TitlescreenState extends State<Titlescreen> {
           reverseTransitionDuration: Duration.zero,
           pageBuilder: (context, animation, secondaryAnimation) => screen,
         ));
-        // Reload the high score after returning from a game
+        // Reload the high score after returning from a random game
         if (mounted) {
           _highScoreFuture = StreakHighScore.getHighScore();
           setState((){});
@@ -126,9 +127,9 @@ class _TitlescreenState extends State<Titlescreen> {
                               hoverColor: Colors.transparent,
                               onTap: () {
                                 debugPrint('Work in Progress');
-                                // final box = context.findRenderObject()! as RenderBox;
-                                // final position = box.localToGlobal(box.size.center(Offset.zero)); // gets the card's middle position to render transition
-                                // _navigateToScreen(context, position, const GameSet.randomMode());
+                                final box = context.findRenderObject()! as RenderBox;
+                                final position = box.localToGlobal(box.size.center(Offset.zero)); // gets the card's middle position to render transition
+                                _navigateToScreen(context, position, const BoardCreationMode());
                               },
                               child: Image.asset(
                                 'assets/images/board creation.png',

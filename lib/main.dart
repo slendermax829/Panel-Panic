@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:panel_puzzle/custom_board/board_entry.dart';
 import 'package:panel_puzzle/game/titleScreen.dart';
 import 'package:panel_puzzle/shared/background.dart';
 import 'package:panel_puzzle/shared/GameTransition.dart';
@@ -13,6 +15,12 @@ Future<void> main() async {
 
   debugPrint('Done loading assets');
   debugPrint('Assets Loaded: ${SpriteDataCollection.numOfAssetsLoaded}/n');
+
+  var response = await BoardJsonWriter.doesExist();
+
+  debugPrint('Board Json File exists: $response');
+
+  if(response == false) exit(1);
 
   runApp(const MyApp());
   unawaited(_startMusic());

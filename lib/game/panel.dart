@@ -41,6 +41,7 @@ class _PanelState extends State<Panel> with SingleTickerProviderStateMixin{
   @override
   void didUpdateWidget(covariant Panel oldWidget) {
     super.didUpdateWidget(oldWidget);
+    
     if (widget.isVictory && !oldWidget.isVictory) {
       final controller = _panelController;
       if (controller != null) _showVictory(controller);
