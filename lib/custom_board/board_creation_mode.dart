@@ -2,12 +2,22 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:panel_puzzle/custom_board/board_entry.dart';
 import 'package:panel_puzzle/custom_board/custom_board.dart';
+import 'package:panel_puzzle/shared/GameTransition.dart';
 
-enum CustomMode { Design, Puzzle }
+enum CustomMode { 
+  Design, 
+  Puzzle 
+}
 
 class BoardCreationMode extends StatefulWidget {
-  const BoardCreationMode({super.key});
+  final int? entryId;
+
+  BoardCreationMode({
+    super.key,
+    this.entryId
+  });
 
   @override
   State<BoardCreationMode> createState() => _BoardCreationModeState();
@@ -25,7 +35,8 @@ class _BoardCreationModeState extends State<BoardCreationMode> {
   late final TextEditingController _boardNameController;
   late final TextEditingController _authorController;
   
-
+  bool _isSaved = false;
+  int? _entryId;
   int _gridSize = 3;
   CustomMode _currMode = .Design;
 
@@ -36,7 +47,7 @@ class _BoardCreationModeState extends State<BoardCreationMode> {
   late List<bool> _board;
 
   // Tapped panel indices, in order.
-  final List<int> _steps = [];
+  late List<int> _steps;
 
   String get _dateOnly => DateFormat.yMMMd().format(_today);
 
@@ -55,18 +66,163 @@ class _BoardCreationModeState extends State<BoardCreationMode> {
 
     _designBoard = List.filled(_numOfPanels, false);
     _board = List.from(_designBoard);
+    _steps = [];
+
+    final id = _entryId = widget.entryId;
+    if (id != null) _loadExistingBoard(id);
+  }
+
+  Future<void> _loadExistingBoard(int id) async {
+    final entry = await getExistingBoard(id);
+    if (!mounted || entry == null) return;
+
+    setState(() {
+      _boardNameController.text = entry.name ?? '';
+      _authorController.text = entry.authorName ?? '';
+      _gridSize = entry.gridSize ?? 3;
+      _designBoard = List.from(entry.startBoard ?? List.filled(_numOfPanels, false));
+      _board = List.from(entry.endBoard ?? _designBoard);
+      _steps = List.from(entry.steps ?? []);
+    });
   }
 
   @override
   void dispose() {
     _boardNameController.dispose();
+    _authorController.dispose();
     super.dispose();
+  }
+
+  Future<BoardEntry?> getExistingBoard(int id) async => await BoardJsonWriter.get(id);
+
+  void _saveBoard() async{
+    if(!_formKey.currentState!.validate()){
+      _showMessanger(msg: 'Please fill the required forms', color: Colors.red);
+      return;
+    }
+
+    if(_steps.isEmpty){
+      _showMessanger(msg: 'No steps are listed enter at least one step', color: Colors.red);
+      return;
+    }
+
+    final editedEntry = BoardEntry(
+      id: _entryId,
+      name: _boardNameController.text, 
+      authorName: _authorController.text, 
+      gridSize: _gridSize, 
+      startBoard: _designBoard, 
+      endBoard: _board,
+      steps: _steps,
+    );
+
+    try{
+      await BoardJsonWriter.save(editedEntry);
+      if(!mounted) return;
+      final isNew = _entryId == null;
+      // Later saves of the same screen update this board instead of adding a duplicate.
+      _entryId = editedEntry.id;
+      isNew ? _showMessanger(msg: 'Successfully created: ${_boardNameController.text} ',color: Colors.lightGreen)
+                            : _showMessanger(msg: 'Successfully edited: ${_boardNameController.text} ',color: Colors.lightGreen);
+      _isSaved = true;
+    }catch(e){
+      _showMessanger(msg: 'Error trying to save / edit board: $e', color: Colors.red);
+    }
+  }
+
+  void _deleteBoard() async {
+    final confirm = await showDialog<bool>(
+      context: context, 
+      builder:(context) {
+        return AlertDialog(
+          title: const Center(child: Text('Delete Board?'),),
+          content: Column(
+            mainAxisAlignment: .center,
+            mainAxisSize: .min,
+            children: [
+              const Text('Are you sure you want to delete this board')
+            ],
+          ),
+          actionsAlignment: .center,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white
+              ),
+              onPressed: () => Navigator.of(context).pop(true), 
+              child: const Text('Confirm')
+            )
+          ],
+        );
+      },
+    );
+
+    if(mounted && confirm!){
+      try{
+        await BoardJsonWriter.deleteEntry(widget.entryId!);
+        if(!mounted) return;
+        _isSaved = true;
+        _exit();
+      }catch(e){
+        _showMessanger(msg: 'Error trying to delete board: $e', color: Colors.red);
+      }
+    }
+  }
+
+  void _exit() async {
+    final confirm = _isSaved ? true : await showDialog<bool>(
+      context: context, 
+      builder:(context) {
+        return AlertDialog(
+          title: const Text('Exit?'),
+          content: Column(
+            mainAxisAlignment: .center,
+            mainAxisSize: .min,
+            children: [
+              const Text('Are you sure you want to exit?\n You have not saved a board.')
+            ],
+          ),
+          actionsAlignment: .center,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true), 
+              child: const Text('Confirm')
+            )
+          ],
+        );
+      },
+    );
+
+    if(mounted && confirm!){
+      final navigator = Navigator.of(context);
+      
+      CirclePulseTransition.of(context).trigger(
+        MediaQuery.sizeOf(context).center(Offset.zero),
+          onMidPoint: () {
+            // An open drawer consumes the first pop, so dismiss it before leaving the page.
+            final scaffold = _scaffoldKey.currentState;
+            if(scaffold != null && (scaffold.isDrawerOpen || scaffold.isEndDrawerOpen)){
+              navigator.pop();
+            }
+            navigator.pop();
+          },
+      );
+    }
   }
 
   void _showMessanger({String? msg, Color? color}){
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        duration: Duration(seconds: 3),
+        duration: Duration(seconds: 2),
         backgroundColor: color,
         content: Text(
           msg ?? 'unknown msg',
@@ -161,8 +317,7 @@ class _BoardCreationModeState extends State<BoardCreationMode> {
     }
   }
 
-  String _stepLabel(int index) =>
-      'Row ${index ~/ _gridSize + 1}, Col ${index % _gridSize + 1}';
+  String _stepLabel(int index) => 'Row ${index ~/ _gridSize + 1}, Col ${index % _gridSize + 1}';
 
   @override
   Widget build(BuildContext context) {
@@ -173,7 +328,7 @@ class _BoardCreationModeState extends State<BoardCreationMode> {
       appBar: AppBar(
         leading: IconButton(
           tooltip: 'Back',
-          onPressed: () => Navigator.of(context).maybePop(),
+          onPressed: () => _exit(),
           icon: const Icon(Icons.arrow_back_ios),
         ),
         title: const Text(
@@ -200,77 +355,112 @@ class _BoardCreationModeState extends State<BoardCreationMode> {
         onPressed: _resetBoard,
       ),
       drawer: Drawer(
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: .start,
-              spacing: 16,
-              children: [
-                const Text(
-                  'Board Configuration',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                Text('Date: $_dateOnly', style: TextStyle(fontSize: 16),),
-                const Divider(height: 1),
-                Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: .start,
-                    spacing: 15,
-                    children: [
-                      TextFormField(
-                        controller: _boardNameController,
-                        decoration: const InputDecoration(
-                          icon: Icon(Icons.edit),
-                          labelText: 'Board name',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          if(value == null || value.isEmpty){
-                            return 'A name must be filled out';
-                          }
-                          return null;
-                        },
+        child: Column(
+          mainAxisAlignment: .spaceBetween,
+          children: [
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: .start,
+                  spacing: 16,
+                  children: [
+                    const Text(
+                      'Board Configuration',
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                    Text('Date: $_dateOnly', style: TextStyle(fontSize: 16),),
+                    const Divider(height: 1),
+                    Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: .start,
+                        spacing: 15,
+                        children: [
+                          TextFormField(
+                            controller: _boardNameController,
+                            decoration: const InputDecoration(
+                              icon: Icon(Icons.edit),
+                              labelText: 'Board name',
+                              border: OutlineInputBorder(),
+                            ),
+                            validator: (value) {
+                              if(value == null || value.isEmpty){
+                                return 'A name must be filled out';
+                              }
+                              return null;
+                            },
+                          ),
+                          TextFormField(
+                            controller: _authorController,
+                            decoration: const InputDecoration(
+                              icon: Icon(Icons.book),
+                              labelText: 'Author',
+                              border: OutlineInputBorder(),
+                            ),
+                            validator: (value) {
+                              if(value == null || value.isEmpty){
+                                return 'A author for this board must filled out';
+                              }
+                              return null;
+                            },
+                          ),
+                        ],
                       ),
-                      TextFormField(
-                        controller: _authorController,
-                        decoration: const InputDecoration(
-                          icon: Icon(Icons.book),
-                          labelText: 'Author',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          if(value == null || value.isEmpty){
-                            return 'A author for this board must filled out';
-                          }
-                          return null;
-                        },
+                    ),
+                    Text('Grid size: $_gridSize x $_gridSize', style: TextStyle(fontSize: 18),),
+                    Slider(
+                      value: _gridSize.toDouble(),
+                      min: _minGridSize.toDouble(),
+                      max: _maxGridSize.toDouble(),
+                      divisions: _maxGridSize - _minGridSize,
+                      label: '$_gridSize',
+                      onChanged: isDesign
+                          ? (value) => _setGridSize(value.round())
+                          : null,
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: isDesign ? _randomizePanels : null,
+                      icon: const Icon(Icons.shuffle),
+                      label: const Text('Randomize layout'),
+                    ),
+                    if (!isDesign)
+                      const Text('Switch to Design mode to change the layout.'),
+                  ],
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Align(
+                alignment: .bottomRight,
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Row(
+                    mainAxisAlignment: .spaceEvenly,
+                    spacing: 5,
+                    children: [
+                      FilledButton.icon(
+                        icon: Icon(Icons.save),
+                        onPressed: () => _saveBoard(), 
+                        label: const Text('Save')
+                      ),
+
+                      if(widget.entryId != null)
+                        FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Colors.redAccent,
+                            foregroundColor: Colors.white,
+                          ),
+                          icon: Icon(Icons.delete),
+                          onPressed: () => _deleteBoard(), 
+                          label: const Text('Delete')
                       ),
                     ],
                   ),
                 ),
-                Text('Grid size: $_gridSize x $_gridSize', style: TextStyle(fontSize: 18),),
-                Slider(
-                  value: _gridSize.toDouble(),
-                  min: _minGridSize.toDouble(),
-                  max: _maxGridSize.toDouble(),
-                  divisions: _maxGridSize - _minGridSize,
-                  label: '$_gridSize',
-                  onChanged: isDesign
-                      ? (value) => _setGridSize(value.round())
-                      : null,
-                ),
-                OutlinedButton.icon(
-                  onPressed: isDesign ? _randomizePanels : null,
-                  icon: const Icon(Icons.shuffle),
-                  label: const Text('Randomize layout'),
-                ),
-                if (!isDesign)
-                  const Text('Switch to Design mode to change the layout.'),
-              ],
-            ),
-          ),
+              )
+            )
+          ],
         ),
       ),
       endDrawer: Drawer(
@@ -322,6 +512,12 @@ class _BoardCreationModeState extends State<BoardCreationMode> {
                 ),
               ),
               SegmentedButton<CustomMode>(
+                style: SegmentedButton.styleFrom(
+                  side: BorderSide(color: Colors.white),
+                  backgroundColor: Colors.purple.shade200,
+                  selectedBackgroundColor: _currMode == .Design ? Colors.orangeAccent : Colors.tealAccent,
+                  selectedForegroundColor: Colors.grey.shade700
+                ),
                 segments: const [
                   ButtonSegment(
                     value: CustomMode.Design,

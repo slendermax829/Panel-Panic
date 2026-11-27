@@ -1,50 +1,59 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 
 class BoardEntry {
   // Unique per entry so it can be updated or deleted later.
   final int id;
 
-  final String name;
-  final String authorName;
+  String? name;
+  String? authorName;
 
-  final int gridSize;
+  int? gridSize;
 
-  final List<bool> startBoard;
-  final List<bool> endBoard;
+  List<bool>? startBoard;
+  List<bool>? endBoard;
 
-  final Duration? clearTime;
-  final DateTime date;
+  List<int>? steps;
+
+  Duration? clearTime;
+  DateTime? date;
 
   BoardEntry({
     int? id,
-    required this.name,
-    required this.authorName,
-    required this.gridSize,
-    required List<bool> startBoard,
-    required List<bool> endBoard,
+    this.name,
+    this.authorName,
+    this.gridSize,
+    List<bool>? startBoard,
+    List<bool>? endBoard,
+    List<int>? steps,
     this.clearTime,
     DateTime? date,
   })  : date = date ?? DateTime.now(),
         id = id ?? DateTime.now().microsecondsSinceEpoch.toInt(),
-        startBoard = List.unmodifiable(startBoard),
-        endBoard = List.unmodifiable(endBoard);
+        startBoard = List.unmodifiable(startBoard ?? []),
+        endBoard = List.unmodifiable(endBoard ?? []),
+        steps = List.unmodifiable(steps ?? []);
 
   factory BoardEntry.fromJson(Map<String, dynamic> json) {
     final clearTime = json['clearTimeMs'] as int?;
 
-    return BoardEntry(
+    final jsonEntry = BoardEntry(
       id: json['id'] as int,
       name: json['name'] as String,
       authorName: json['authorName'] as String,
       gridSize: json['gridSize'] as int,
       startBoard: (json['startBoard'] as List).cast<bool>(),
       endBoard: (json['endBoard'] as List).cast<bool>(),
+      steps: ((json['steps'] as List?) ?? []).cast<int>(),
       clearTime: clearTime == null ? null : Duration(milliseconds: clearTime),
       date: DateTime.parse(json['date'] as String),
     );
+
+    return jsonEntry;
   }
 
   Map<String, dynamic> toJson() => {
@@ -54,9 +63,22 @@ class BoardEntry {
         'gridSize': gridSize,
         'startBoard': startBoard,
         'endBoard': endBoard,
+        'steps' : steps,
         'clearTimeMs': clearTime?.inMilliseconds,
-        'date': date.toIso8601String(),
+        'date': date?.toIso8601String(),
       };
+
+  String get dateFormat => DateFormat.yMMMMd().format(date ?? DateTime(2099,1,1));
+
+  String get clearTimeFormat{
+    if(clearTime == null) return '99:99:99';
+
+    final hours = clearTime!.inHours.toString().padLeft(2, '0');
+    final minutes = clearTime!.inMinutes.remainder(60).toString().padLeft(2,'0');
+    final seconds = clearTime!.inSeconds.remainder(60).toString().padLeft(2,'0');
+
+    return '$hours:$minutes:$seconds';
+  }
 }
 
 /// Stores every custom board in one JSON file:
@@ -77,7 +99,7 @@ class BoardJsonWriter {
 
   static Future<void> _createFile() async {
     final file = await _getFile(_fileName);
-    
+
     await file.create(recursive: true);
   }
 
@@ -91,12 +113,17 @@ class BoardJsonWriter {
     final file = await _getFile(_fileName);
     if (!await file.exists()) return [];
 
+    // doesExist() creates the file empty, which is a valid "no boards yet" state.
+    final contents = await file.readAsString();
+    if (contents.trim().isEmpty) return [];
+
     try {
-      final json = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+      final json = jsonDecode(contents) as Map<String, dynamic>;
       return (json['boards'] as List)
           .map((board) => BoardEntry.fromJson(board as Map<String, dynamic>))
           .toList();
-    } on Object {
+    } on Object catch (e) {
+      debugPrint('Could not read $_fileName.json: $e');
       // Keep the unreadable file around instead of overwriting it with an empty list.
       await file.rename('${file.path}.corrupt');
       return [];
@@ -119,7 +146,7 @@ class BoardJsonWriter {
 
   static Future<List<BoardEntry>> readAll() => _synchronized(_read);
 
-  static Future<BoardEntry?> get(String id) async {
+  static Future<BoardEntry?> get(int id) async {
     final boards = await readAll();
     return boards.where((board) => board.id == id).firstOrNull;
   }
@@ -135,9 +162,18 @@ class BoardJsonWriter {
           boards[index] = entry;
         }
         await _write(boards);
-      });
+  });
 
-  static Future<void> remove(String id) => _synchronized(() async {
+  static Future<void> deleteEntry(int id) => _synchronized(() async{
+      final boards = await _read();
+      final index = boards.indexWhere((board) => board.id == id);
+
+      if (index != -1) boards.removeAt(index);
+  
+      await _write(boards);
+  });
+
+  static Future<void> remove(int id) => _synchronized(() async {
         final boards = await _read();
         boards.removeWhere((board) => board.id == id);
         await _write(boards);

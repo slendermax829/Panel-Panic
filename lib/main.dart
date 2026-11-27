@@ -20,7 +20,10 @@ Future<void> main() async {
 
   debugPrint('Board Json File exists: $response');
 
-  if(response == false) exit(1);
+  if(response == false){
+    debugPrint('Board Json File does not exists');
+    exit(1);
+  }
 
   runApp(const MyApp());
   unawaited(_startMusic());
