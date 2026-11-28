@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:panel_puzzle/custom_board/board_creation_mode.dart';
 import 'package:panel_puzzle/custom_board/board_entry.dart';
+import 'package:panel_puzzle/game/custom_game.dart';
 import 'package:panel_puzzle/game/game_set.dart';
 import 'package:panel_puzzle/shared/GameTransition.dart';
 import 'package:panel_puzzle/shared/highscore.dart';
@@ -61,6 +62,10 @@ class _TitlescreenState extends State<Titlescreen> {
                     builder: (context, snapshot) {
                       if (snapshot.connectionState != ConnectionState.done) {
                         return const Center(child: CircularProgressIndicator());
+                      }
+
+                      if (snapshot.hasError) {
+                        return Center(child: Text('Could not load boards: ${snapshot.error}'));
                       }
 
                       final boards = snapshot.data ?? [];
@@ -169,18 +174,21 @@ class _TitlescreenState extends State<Titlescreen> {
     return Scaffold(
       appBar: AppBar(
         leadingWidth: 400,
-        leading: FutureBuilder<int>(
-          future: _highScoreFuture,
-          builder:(context, snapshot) {
-            if(snapshot.hasData){
-              return Text(
-                'Streak HighScore: ${snapshot.data}',
-                style: TextStyle(fontSize: 30),
-              );
-            }else{
-              return Text('Streak HighScore: ERROR');
-            }
-          },
+        leading: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 15),
+          child: FutureBuilder<int>(
+            future: _highScoreFuture,
+            builder:(context, snapshot) {
+              if(snapshot.hasData){
+                return Text(
+                  'Streak HighScore: ${snapshot.data}',
+                  style: TextStyle(fontSize: 30),
+                );
+              }else{
+                return Text('Streak HighScore: ERROR');
+              }
+            },
+          ),
         ),
       ),
       body: SafeArea(
@@ -198,10 +206,12 @@ class _TitlescreenState extends State<Titlescreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     spacing: 5,
                     children: [
-                      Image.asset(
-                        'assets/images/title.png',
-                        scale: _titleScale,
-                        fit: BoxFit.contain,
+                      Positioned.fill(
+                        child: Image.asset(
+                          'assets/images/title.png',
+                          scale: _titleScale,
+                          fit: BoxFit.contain,
+                        ),
                       ),
                       const SizedBox(height: 50),
                       Menuitem(child: Builder(
@@ -231,11 +241,12 @@ class _TitlescreenState extends State<Titlescreen> {
                           builder: (context) {
                             return InkWell(
                               hoverColor: Colors.transparent,
-                              onTap: () {
-                                debugPrint('Work in Progress');
-                                // final box = context.findRenderObject()! as RenderBox;
-                                // final position = box.localToGlobal(box.size.center(Offset.zero)); // gets the card's middle position to render transition
-                                // _navigateToScreen(context, position, const GameSet.randomMode());
+                              onTap: () async {
+                                final box = context.findRenderObject()! as RenderBox;
+                                final position = box.localToGlobal(box.size.center(Offset.zero));
+                                final board = await _viewBoards();
+                                if (!mounted || board == null) return;
+                                _navigateToScreen(this.context, position, CustomGame(board: board));
                               },
                               child: Image.asset(
                                 'assets/images/custom game.png',

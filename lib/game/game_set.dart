@@ -72,8 +72,6 @@ class _GameSetState extends State<GameSet> {
     super.initState();
   }
 
-
-
   void _navigateBack() async {
     final bool? confirm = widget.mode == .Custom
         ? true
@@ -209,10 +207,6 @@ class _GameSetState extends State<GameSet> {
         _tryAgainDialog();
       }
     }
-  }
-
-  void _saveScore() async {
-
   }
 
   void _showWinDialog(){

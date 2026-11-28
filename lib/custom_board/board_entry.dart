@@ -70,13 +70,12 @@ class BoardEntry {
 
   String get dateFormat => DateFormat.yMMMMd().format(date ?? DateTime(2099,1,1));
 
-  String get clearTimeFormat{
-    if(clearTime == null) return '99:99:99';
+  String get clearTimeFormat => clearTime == null ? 'Not set' : formatTime(clearTime!);
 
-    final hours = clearTime!.inHours.toString().padLeft(2, '0');
-    final minutes = clearTime!.inMinutes.remainder(60).toString().padLeft(2,'0');
-    final seconds = clearTime!.inSeconds.remainder(60).toString().padLeft(2,'0');
-
+  static String formatTime(Duration time) {
+    final hours = time.inHours.toString().padLeft(2, '0');
+    final minutes = time.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = time.inSeconds.remainder(60).toString().padLeft(2, '0');
     return '$hours:$minutes:$seconds';
   }
 }
@@ -163,6 +162,26 @@ class BoardJsonWriter {
         }
         await _write(boards);
   });
+
+  /// Records a personal best only if the saved puzzle has not changed.
+  static Future<Duration> recordClearTime(BoardEntry playedBoard, Duration time) =>
+      _synchronized(() async {
+        final boards = await _read();
+        final index = boards.indexWhere((board) => board.id == playedBoard.id);
+        if (index == -1) throw StateError('The board no longer exists.');
+        final board = boards[index];
+        if (board.gridSize != playedBoard.gridSize ||
+            !listEquals(board.startBoard, playedBoard.startBoard) ||
+            !listEquals(board.endBoard, playedBoard.endBoard)) {
+          throw StateError('The board has changed since this game started.');
+        }
+        final savedTime = board.clearTime;
+        if (savedTime == null || time.inMilliseconds < savedTime.inMilliseconds) {
+          board.clearTime = Duration(milliseconds: time.inMilliseconds);
+          await _write(boards);
+        }
+        return board.clearTime!;
+      });
 
   static Future<void> deleteEntry(int id) => _synchronized(() async{
       final boards = await _read();
